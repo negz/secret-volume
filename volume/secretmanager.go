@@ -98,13 +98,13 @@ func (vm *secretManager) writeSecrets(v *api.Volume, s api.Secrets) error {
 			return err
 		}
 		if h.FileInfo.IsDir() {
-			d := path.Join(vm.m.Path(v.Id), h.Path)
+			d := path.Join(vm.m.Path(v.ID), h.Path)
 			log.Debug("creating directory", zap.String("path", d), zap.String("type", "explicit"))
 			if err := vm.fs.MkdirAll(d, vm.dmode); err != nil {
 				return err
 			}
 		} else {
-			f, err := vm.createFile(v.Id, h.Path)
+			f, err := vm.createFile(v.ID, h.Path)
 			if err != nil {
 				return err
 			}
@@ -121,7 +121,7 @@ func (vm *secretManager) writeSecrets(v *api.Volume, s api.Secrets) error {
 
 func (vm *secretManager) writeMetadata(v *api.Volume) error {
 	// TODO(negz): Use some binary serialisation for the metadata?
-	f, err := vm.createFile(v.Id, vm.meta)
+	f, err := vm.createFile(v.ID, vm.meta)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (vm *secretManager) writeMetadata(v *api.Volume) error {
 }
 
 func (vm *secretManager) Create(v *api.Volume) error {
-	if exists, err := vm.af.Exists(vm.m.Path(v.Id)); err != nil {
+	if exists, err := vm.af.Exists(vm.m.Path(v.ID)); err != nil {
 		return err
 	} else if exists {
 		return PathExistsError
@@ -144,7 +144,7 @@ func (vm *secretManager) Create(v *api.Volume) error {
 		return err
 	}
 	defer s.Close()
-	if err := vm.fs.MkdirAll(vm.m.Path(v.Id), vm.dmode); err != nil {
+	if err := vm.fs.MkdirAll(vm.m.Path(v.ID), vm.dmode); err != nil {
 		return err
 	}
 	if err := vm.m.Mount(v); err != nil {
@@ -156,7 +156,7 @@ func (vm *secretManager) Create(v *api.Volume) error {
 	if err := vm.writeMetadata(v); err != nil {
 		return err
 	}
-	log.Info("created volume", zap.String("id", v.Id), zap.String("path", vm.m.Path(v.Id)))
+	log.Info("created volume", zap.String("id", v.ID), zap.String("path", vm.m.Path(v.ID)))
 	return nil
 }
 
@@ -189,7 +189,7 @@ func (vm *secretManager) readMetadata(id string) (*api.Volume, error) {
 		return nil, err
 	}
 
-	log.Debug("read metadata", zap.String("id", v.Id))
+	log.Debug("read metadata", zap.String("id", v.ID))
 	return v, nil
 }
 

@@ -51,8 +51,8 @@ func TestSecretManager(t *testing.T) {
 		vm, _ := NewSecretManager(m, sp, Filesystem(fs), MetadataFile("someta"))
 
 		t.Run("DestroyBeforeCreated", func(t *testing.T) {
-			if err := vm.Destroy(tt.v.Id); err != PathDoesNotExistError {
-				t.Errorf("vm.Destroy(%v): %v", tt.v.Id, err)
+			if err := vm.Destroy(tt.v.ID); err != PathDoesNotExistError {
+				t.Errorf("vm.Destroy(%v): %v", tt.v.ID, err)
 			}
 		})
 
@@ -69,7 +69,7 @@ func TestSecretManager(t *testing.T) {
 					t.Errorf("s.Next(): %v", err)
 					continue
 				}
-				p := path.Join(m.Path(tt.v.Id), h.Path)
+				p := path.Join(m.Path(tt.v.ID), h.Path)
 				if h.FileInfo.IsDir() {
 					// Assert dir
 					d, err := fs.Stat(p)
@@ -113,24 +113,24 @@ func TestSecretManager(t *testing.T) {
 				t.Errorf("vm.List(): %v", err)
 			}
 			if !reflect.DeepEqual(l[0], tt.v) {
-				t.Errorf("vm.Get(%v): Want %v, got %v", tt.v.Id, tt.v, l[0])
+				t.Errorf("vm.Get(%v): Want %v, got %v", tt.v.ID, tt.v, l[0])
 			}
 		})
 
 		t.Run("Get", func(t *testing.T) {
-			v, err := vm.Get(tt.v.Id)
+			v, err := vm.Get(tt.v.ID)
 			if err != nil {
-				t.Errorf("vm.Get(%v): %v", tt.v.Id, err)
+				t.Errorf("vm.Get(%v): %v", tt.v.ID, err)
 				return
 			}
 			if !reflect.DeepEqual(v, tt.v) {
-				t.Errorf("vm.Get(%v): Want %v, got %v", tt.v.Id, tt.v, v)
+				t.Errorf("vm.Get(%v): Want %v, got %v", tt.v.ID, tt.v, v)
 			}
 		})
 
 		t.Run("Destroy", func(t *testing.T) {
-			if err := vm.Destroy(tt.v.Id); err != nil {
-				t.Errorf("vm.Destroy(%v): %v", tt.v.Id, err)
+			if err := vm.Destroy(tt.v.ID); err != nil {
+				t.Errorf("vm.Destroy(%v): %v", tt.v.ID, err)
 			}
 		})
 	}

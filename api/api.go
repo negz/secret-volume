@@ -71,7 +71,7 @@ func (k KeyPair) ToCertificate() (tls.Certificate, error) {
 }
 
 type Volume struct {
-	Id      string
+	ID      string
 	Source  SecretSource
 	Tags    url.Values
 	KeyPair KeyPair `json:"-"`
@@ -104,7 +104,7 @@ func ReadVolumesJSON(r io.Reader) (Volumes, error) {
 }
 
 func (v *Volume) String() string {
-	return fmt.Sprintf("Volume id=%v source=%v, tags=%v, keypair=%+v", v.Id, v.Source, v.Tags, v.KeyPair)
+	return fmt.Sprintf("Volume id=%v source=%v, tags=%v, keypair=%+v", v.ID, v.Source, v.Tags, v.KeyPair)
 }
 
 type Secrets interface {

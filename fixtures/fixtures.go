@@ -19,7 +19,7 @@ func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 		return nil, err
 	}
 	v := &api.Volume{
-		Id:      "hash",
+		ID:      "hash",
 		Source:  api.Talos,
 		Tags:    url.Values{"tag": []string{"awesome"}},
 		KeyPair: kp,
@@ -28,7 +28,7 @@ func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 }
 
 var TestVolume = &api.Volume{
-	Id:      "hash",
+	ID:      "hash",
 	Source:  api.Talos,
 	Tags:    url.Values{"tag": []string{"awesome"}},
 	KeyPair: api.KeyPair{},

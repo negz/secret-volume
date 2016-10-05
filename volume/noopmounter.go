@@ -17,7 +17,7 @@ func NewNoopMounter(root string) Mounter {
 }
 
 func (m *noopMounter) Mount(v *api.Volume) error {
-	log.Debug("mount", zap.String("path", m.Path(v.Id)))
+	log.Debug("mount", zap.String("path", m.Path(v.ID)))
 	return nil
 }
 

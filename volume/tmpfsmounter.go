@@ -74,8 +74,8 @@ func (m *tmpFsMounter) flags() string {
 
 func (m *tmpFsMounter) Mount(v *api.Volume) error {
 	f := m.flags()
-	log.Debug("mount", zap.String("path", m.Path(v.Id)), zap.String("flags", f))
-	return unix.Mount("tmpfs", m.Path(v.Id), "tmpfs", m.mflags, f)
+	log.Debug("mount", zap.String("path", m.Path(v.ID)), zap.String("flags", f))
+	return unix.Mount("tmpfs", m.Path(v.ID), "tmpfs", m.mflags, f)
 }
 
 func (m *tmpFsMounter) Unmount(id string) error {
