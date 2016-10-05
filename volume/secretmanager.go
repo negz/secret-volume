@@ -12,7 +12,7 @@ import (
 	"github.com/negz/secret-volume/secrets"
 )
 
-type secretManager struct {
+type manager struct {
 	m           Mounter
 	fs          afero.Fs
 	af          *afero.Afero
@@ -22,16 +22,16 @@ type secretManager struct {
 	fmode       os.FileMode
 }
 
-// A SecretManagerOption represents an argument to NewSecretManager.
-type SecretManagerOption func(*secretManager) error
+// A ManagerOption represents an argument to NewManager.
+type ManagerOption func(*manager) error
 
-// Filesystem allows a SecretManager to be backed by any filesystem
+// Filesystem allows a Manager to be backed by any filesystem
 // implementation supported by https://github.com/spf13/afero. The OS filesystem
 // is used by default.
-func Filesystem(fs afero.Fs) SecretManagerOption {
-	return func(vm *secretManager) error {
-		vm.fs = fs
-		vm.af = &afero.Afero{Fs: fs}
+func Filesystem(fs afero.Fs) ManagerOption {
+	return func(sm *manager) error {
+		sm.fs = fs
+		sm.af = &afero.Afero{Fs: fs}
 		return nil
 	}
 }
@@ -39,37 +39,35 @@ func Filesystem(fs afero.Fs) SecretManagerOption {
 // MetadataFile specifies an alternative metadata filename in which to store
 // JSON encoded representations of each api.Volume at their root directory. It
 // defaults to '.meta'.
-func MetadataFile(f string) SecretManagerOption {
-	return func(vm *secretManager) error {
-		vm.meta = f
+func MetadataFile(f string) ManagerOption {
+	return func(sm *manager) error {
+		sm.meta = f
 		return nil
 	}
 }
 
 // DirMode specifies the octal mode with which to create directories beneath the
 // root of a secret volume. It defaults to 0700.
-func DirMode(m os.FileMode) SecretManagerOption {
-	return func(vm *secretManager) error {
-		vm.dmode = m
+func DirMode(m os.FileMode) ManagerOption {
+	return func(sm *manager) error {
+		sm.dmode = m
 		return nil
 	}
 }
 
 // FileMode specifies the octal mode with which to create files in a secret
 // volume. It defaults to 0600.
-func FileMode(m os.FileMode) SecretManagerOption {
-	return func(vm *secretManager) error {
-		vm.fmode = m
+func FileMode(m os.FileMode) ManagerOption {
+	return func(sm *manager) error {
+		sm.fmode = m
 		return nil
 	}
 }
 
-// NewSecretManager creates a new Manager backed by the provided secret
-// producers.
-// TODO(negz): Rename this (and the vmo argument).
-func NewSecretManager(m Mounter, sp secrets.Producers, vmo ...SecretManagerOption) (Manager, error) {
+// NewManager creates a new Manager backed by the provided secret producers.
+func NewManager(m Mounter, sp secrets.Producers, mo ...ManagerOption) (Manager, error) {
 	fs := afero.NewOsFs()
-	vm := &secretManager{
+	sm := &manager{
 		m,
 		fs,
 		&afero.Afero{Fs: fs},
@@ -78,31 +76,31 @@ func NewSecretManager(m Mounter, sp secrets.Producers, vmo ...SecretManagerOptio
 		0700,
 		0600,
 	}
-	for _, o := range vmo {
-		if err := o(vm); err != nil {
+	for _, o := range mo {
+		if err := o(sm); err != nil {
 			return nil, err
 		}
 	}
-	return vm, nil
+	return sm, nil
 }
 
-func (vm *secretManager) createFile(id, file string) (afero.File, error) {
-	p := path.Join(vm.m.Path(id), file)
+func (sm *manager) createFile(id, file string) (afero.File, error) {
+	p := path.Join(sm.m.Path(id), file)
 	d := path.Dir(p)
 	// Talos serves tarballs without directories.
-	if exists, err := vm.af.DirExists(d); err != nil {
+	if exists, err := sm.af.DirExists(d); err != nil {
 		return nil, err
 	} else if !exists {
 		log.Debug("creating directory", zap.String("path", d), zap.String("type", "implicit"))
-		if err := vm.af.MkdirAll(d, vm.dmode); err != nil {
+		if err := sm.af.MkdirAll(d, sm.dmode); err != nil {
 			return nil, err
 		}
 	}
 	log.Debug("creating file", zap.String("path", p))
-	return vm.fs.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, vm.fmode)
+	return sm.fs.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, sm.fmode)
 }
 
-func (vm *secretManager) writeSecrets(v *api.Volume, s api.Secrets) error {
+func (sm *manager) writeSecrets(v *api.Volume, s api.Secrets) error {
 	for {
 		h, err := s.Next()
 		if err == io.EOF {
@@ -112,13 +110,13 @@ func (vm *secretManager) writeSecrets(v *api.Volume, s api.Secrets) error {
 			return err
 		}
 		if h.FileInfo.IsDir() {
-			d := path.Join(vm.m.Path(v.ID), h.Path)
+			d := path.Join(sm.m.Path(v.ID), h.Path)
 			log.Debug("creating directory", zap.String("path", d), zap.String("type", "explicit"))
-			if err := vm.fs.MkdirAll(d, vm.dmode); err != nil {
+			if err := sm.fs.MkdirAll(d, sm.dmode); err != nil {
 				return err
 			}
 		} else {
-			f, err := vm.createFile(v.ID, h.Path)
+			f, err := sm.createFile(v.ID, h.Path)
 			if err != nil {
 				return err
 			}
@@ -133,9 +131,9 @@ func (vm *secretManager) writeSecrets(v *api.Volume, s api.Secrets) error {
 	}
 }
 
-func (vm *secretManager) writeMetadata(v *api.Volume) error {
+func (sm *manager) writeMetadata(v *api.Volume) error {
 	// TODO(negz): Use some binary serialisation for the metadata?
-	f, err := vm.createFile(v.ID, vm.meta)
+	f, err := sm.createFile(v.ID, sm.meta)
 	if err != nil {
 		return err
 	}
@@ -143,13 +141,13 @@ func (vm *secretManager) writeMetadata(v *api.Volume) error {
 	return v.WriteJSON(f)
 }
 
-func (vm *secretManager) Create(v *api.Volume) error {
-	if exists, err := vm.af.Exists(vm.m.Path(v.ID)); err != nil {
+func (sm *manager) Create(v *api.Volume) error {
+	if exists, err := sm.af.Exists(sm.m.Path(v.ID)); err != nil {
 		return err
 	} else if exists {
 		return PathExistsError
 	}
-	sp, exists := vm.producerFor[v.Source]
+	sp, exists := sm.producerFor[v.Source]
 	if !exists {
 		return secrets.UnhandledSecretSourceError
 	}
@@ -158,41 +156,41 @@ func (vm *secretManager) Create(v *api.Volume) error {
 		return err
 	}
 	defer s.Close()
-	if err := vm.fs.MkdirAll(vm.m.Path(v.ID), vm.dmode); err != nil {
+	if err := sm.fs.MkdirAll(sm.m.Path(v.ID), sm.dmode); err != nil {
 		return err
 	}
-	if err := vm.m.Mount(v); err != nil {
+	if err := sm.m.Mount(v); err != nil {
 		return err
 	}
-	if err := vm.writeSecrets(v, s); err != nil {
+	if err := sm.writeSecrets(v, s); err != nil {
 		return err
 	}
-	if err := vm.writeMetadata(v); err != nil {
+	if err := sm.writeMetadata(v); err != nil {
 		return err
 	}
-	log.Info("created volume", zap.String("id", v.ID), zap.String("path", vm.m.Path(v.ID)))
+	log.Info("created volume", zap.String("id", v.ID), zap.String("path", sm.m.Path(v.ID)))
 	return nil
 }
 
-func (vm *secretManager) Destroy(id string) error {
-	if exists, err := vm.af.DirExists(vm.m.Path(id)); err != nil {
+func (sm *manager) Destroy(id string) error {
+	if exists, err := sm.af.DirExists(sm.m.Path(id)); err != nil {
 		return err
 	} else if !exists {
 		return PathDoesNotExistError
 	}
-	if err := vm.m.Unmount(id); err != nil {
+	if err := sm.m.Unmount(id); err != nil {
 		return err
 	}
-	if err := vm.fs.RemoveAll(vm.m.Path(id)); err != nil {
+	if err := sm.fs.RemoveAll(sm.m.Path(id)); err != nil {
 		return err
 	}
 
-	log.Info("destroyed volume", zap.String("id", id), zap.String("path", vm.m.Path(id)))
+	log.Info("destroyed volume", zap.String("id", id), zap.String("path", sm.m.Path(id)))
 	return nil
 }
 
-func (vm *secretManager) readMetadata(id string) (*api.Volume, error) {
-	f, err := vm.fs.Open(path.Join(vm.m.Path(id), vm.MetadataFile()))
+func (sm *manager) readMetadata(id string) (*api.Volume, error) {
+	f, err := sm.fs.Open(path.Join(sm.m.Path(id), sm.MetadataFile()))
 	if err != nil {
 		return nil, err
 	}
@@ -207,23 +205,23 @@ func (vm *secretManager) readMetadata(id string) (*api.Volume, error) {
 	return v, nil
 }
 
-func (vm *secretManager) Get(id string) (*api.Volume, error) {
-	if exists, err := vm.af.DirExists(vm.m.Path(id)); err != nil {
+func (sm *manager) Get(id string) (*api.Volume, error) {
+	if exists, err := sm.af.DirExists(sm.m.Path(id)); err != nil {
 		return nil, err
 	} else if !exists {
 		return nil, UnknownVolumeError
 	}
-	return vm.readMetadata(id)
+	return sm.readMetadata(id)
 }
 
-func (vm *secretManager) List() (api.Volumes, error) {
-	if exists, err := vm.af.DirExists(vm.m.Root()); err != nil {
+func (sm *manager) List() (api.Volumes, error) {
+	if exists, err := sm.af.DirExists(sm.m.Root()); err != nil {
 		return nil, err
 	} else if !exists {
 		return nil, MissingMountpointError
 	}
 
-	f, err := vm.fs.Open(vm.m.Root())
+	f, err := sm.fs.Open(sm.m.Root())
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +233,7 @@ func (vm *secretManager) List() (api.Volumes, error) {
 
 	vols := make([]*api.Volume, 0, len(dirs))
 	for _, id := range dirs {
-		v, err := vm.readMetadata(id)
+		v, err := sm.readMetadata(id)
 		if err != nil {
 			// TODO(negz): Metric-i-fy this.
 			log.Debug("unparseable volume", zap.Error(err))
@@ -246,6 +244,6 @@ func (vm *secretManager) List() (api.Volumes, error) {
 	return vols, nil
 }
 
-func (vm *secretManager) MetadataFile() string {
-	return vm.meta
+func (sm *manager) MetadataFile() string {
+	return sm.meta
 }

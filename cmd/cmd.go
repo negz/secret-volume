@@ -61,7 +61,7 @@ func Run() {
 	// Setup volume manager
 	m, fs := setupFs(*virt, *mount)
 	sps := map[api.SecretSource]secrets.Producer{api.Talos: sp}
-	vm, err := volume.NewSecretManager(m, sps, volume.Filesystem(fs))
+	vm, err := volume.NewManager(m, sps, volume.Filesystem(fs))
 	kingpin.FatalIfError(err, "unable to setup secret volume manager")
 
 	// Setup HTTP handlers
