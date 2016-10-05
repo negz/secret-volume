@@ -19,7 +19,7 @@ import (
 var (
 	pod   = kingpin.Arg("pod", "Pod in which to lookup Talos").Required().String()
 	addr  = kingpin.Flag("addr", "Address at which to serve requests (host:port)").Default(":10002").String()
-	srv   = kingpin.Flag("srv", "SRV record at which to lookup Poppy. Overrides pod").String()
+	srv   = kingpin.Flag("srv", "SRV record at which to lookup Talos. Overrides pod").String()
 	ns    = kingpin.Flag("ns", "DNS server to use to lookup Poppy SRV records (host:port)").String()
 	mount = kingpin.Flag("mountpoint", "Where to mount secret volumes").Short('m').Default("/secrets").ExistingDir()
 	virt  = kingpin.Flag("virtual", "Use an in-memory filesystem and a no-op mounter for testing").Bool()
@@ -48,6 +48,9 @@ func setupLb(ns, pod, srv string) lb.LoadBalancer {
 	return lb.New(&lb.Config{Dns: lib, Strategy: random.RandomStrategy}, record)
 }
 
+// Run is effectively the main() of the secretvolume binary.
+// It lives here in its own package to allow convenient use of Go build tags
+// to control debug logging and system calls.
 func Run() {
 	kingpin.Parse()
 
@@ -73,7 +76,6 @@ func Run() {
 
 /*
 TODO(negz):
-- Docstrings
 - expvar, github.com/pkg/errors, etc
 - Vendor and dockerize
 - Generate Puppet client certs for each volume (container) automatically?

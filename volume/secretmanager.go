@@ -22,8 +22,12 @@ type secretManager struct {
 	fmode       os.FileMode
 }
 
+// A SecretManagerOption represents an argument to NewSecretManager.
 type SecretManagerOption func(*secretManager) error
 
+// Filesystem allows a SecretManager to be backed by any filesystem
+// implementation supported by https://github.com/spf13/afero. The OS filesystem
+// is used by default.
 func Filesystem(fs afero.Fs) SecretManagerOption {
 	return func(vm *secretManager) error {
 		vm.fs = fs
@@ -32,6 +36,9 @@ func Filesystem(fs afero.Fs) SecretManagerOption {
 	}
 }
 
+// MetadataFile specifies an alternative metadata filename in which to store
+// JSON encoded representations of each api.Volume at their root directory. It
+// defaults to '.meta'.
 func MetadataFile(f string) SecretManagerOption {
 	return func(vm *secretManager) error {
 		vm.meta = f
@@ -39,6 +46,8 @@ func MetadataFile(f string) SecretManagerOption {
 	}
 }
 
+// DirMode specifies the octal mode with which to create directories beneath the
+// root of a secret volume. It defaults to 0700.
 func DirMode(m os.FileMode) SecretManagerOption {
 	return func(vm *secretManager) error {
 		vm.dmode = m
@@ -46,6 +55,8 @@ func DirMode(m os.FileMode) SecretManagerOption {
 	}
 }
 
+// FileMode specifies the octal mode with which to create files in a secret
+// volume. It defaults to 0600.
 func FileMode(m os.FileMode) SecretManagerOption {
 	return func(vm *secretManager) error {
 		vm.fmode = m
@@ -53,6 +64,9 @@ func FileMode(m os.FileMode) SecretManagerOption {
 	}
 }
 
+// NewSecretManager creates a new Manager backed by the provided secret
+// producers.
+// TODO(negz): Rename this (and the vmo argument).
 func NewSecretManager(m Mounter, sp secrets.Producers, vmo ...SecretManagerOption) (Manager, error) {
 	fs := afero.NewOsFs()
 	vm := &secretManager{

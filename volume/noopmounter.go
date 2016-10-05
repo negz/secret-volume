@@ -12,6 +12,8 @@ type noopMounter struct {
 	root string
 }
 
+// NewNoopMounter creates a Mounter that simply logs mount and unmount requests.
+// It is primarily used for testing when run in virtual mode..
 func NewNoopMounter(root string) Mounter {
 	return &noopMounter{root}
 }

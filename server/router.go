@@ -7,12 +7,25 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// A HTTPRouter provides a HTTP request router (aka) mux implementation.
 type HTTPRouter interface {
+	// Handler attaches the supplied Handler to the supplied HTTP method and
+	// path.
 	Handler(method, path string, handler http.Handler)
+	// GET is a convenience wrapper around Handler.
 	GET(path string, handler http.Handler)
+	// POST is a convenience wrapper around Handler.
 	POST(path string, handler http.Handler)
+	// DELETE is a convenience wrapper around Handler.
 	DELETE(path string, handler http.Handler)
+	// ServeHTTP allows the use of a HTTPRouter as a http.Handler.
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	// GetParam returns a parameter encoded within a path handled by Handler.
+	// The syntax for encoding a parameter in the path will vary depending on
+	// the underlying routing implementation, but it might (read: does) work
+	// as per the https://github.com/julienschmidt/httprouter implementation.
+	// i.e. If your route path is defined as /things/:thing GetParam(thing) will
+	// return myawesomething given a Request for /things/myawesomething.
 	GetParam(r *http.Request, key string) string
 }
 
@@ -24,8 +37,11 @@ type hrHTTPRouter struct {
 	k  hrParams
 }
 
+// A HRHTTPRouterOption represents an argument to NewHRHTTPRouter.
 type HRHTTPRouterOption func(*hrHTTPRouter) error
 
+// Router provides an alternative Router to be used by NewHRHTTPRouter. A router
+// returned by httprouter.New() is used by default.
 func Router(r *httprouter.Router) HRHTTPRouterOption {
 	return func(h *hrHTTPRouter) error {
 		h.hr = r
@@ -33,6 +49,8 @@ func Router(r *httprouter.Router) HRHTTPRouterOption {
 	}
 }
 
+// NewHRHTTPRouter creates a new HTTPRouter backed by
+// https://github.com/julienschmidt/httprouter.
 func NewHRHTTPRouter(ro ...HRHTTPRouterOption) (HTTPRouter, error) {
 	r := &hrHTTPRouter{httprouter.New(), hrParams{}}
 	for _, o := range ro {

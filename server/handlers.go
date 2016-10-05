@@ -10,14 +10,18 @@ import (
 	"github.com/negz/secret-volume/volume"
 )
 
+// HTTPHandlers contains HTTP handlers for secret volume CRD operations.
 type HTTPHandlers struct {
 	v     volume.Manager
 	r     HTTPRouter
 	idKey string
 }
 
+// A HTTPHandlersOption represents an argument to NewHTTPHandlers.
 type HTTPHandlersOption func(*HTTPHandlers) error
 
+// HTTPHandlersRouter provides an alternative HTTPRouter implementation to be
+// used by HTTPHandlers.
 func HTTPHandlersRouter(r HTTPRouter) HTTPHandlersOption {
 	return func(h *HTTPHandlers) error {
 		h.r = r
@@ -25,6 +29,7 @@ func HTTPHandlersRouter(r HTTPRouter) HTTPHandlersOption {
 	}
 }
 
+// NewHTTPHandlers creates HTTP handlers for secret volume CRD operations.
 func NewHTTPHandlers(v volume.Manager, ho ...HTTPHandlersOption) (*HTTPHandlers, error) {
 	r, err := NewHRHTTPRouter()
 	if err != nil {
@@ -46,6 +51,8 @@ func (h *HTTPHandlers) setupRoutes() {
 	h.r.DELETE("/:id", logReq(h.ensureParam(h.delete, h.idKey)))
 }
 
+// HTTPServer returns a HTTP server configured to run at the supplied address
+// with the HTTP handlers defined within HTTPHandlers.
 func (h *HTTPHandlers) HTTPServer(addr string) *http.Server {
 	h.setupRoutes()
 	return &http.Server{Addr: addr, Handler: h.r}

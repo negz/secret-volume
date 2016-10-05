@@ -21,8 +21,11 @@ type talosProducer struct {
 	ctx context.Context
 }
 
+// A TalosProducerOption represents an argument to NewTalosProducer.
 type TalosProducerOption func(sp *talosProducer) error
 
+// WithContext provides an alternative parent context.Context() for HTTP
+// requests to Talos. context.Background() is used by default.
 func WithContext(ctx context.Context) TalosProducerOption {
 	return func(sp *talosProducer) error {
 		sp.ctx = ctx
@@ -30,6 +33,9 @@ func WithContext(ctx context.Context) TalosProducerOption {
 	}
 }
 
+// NewTalosProducer builds a Producer backed by https://github.com/spotify/talos
+// The supplied lb.LoadBalancer should return the address of a Talos HTTP
+// backend.
 func NewTalosProducer(lb lb.LoadBalancer, spo ...TalosProducerOption) (Producer, error) {
 	sp := &talosProducer{lb, context.Background()}
 	for _, o := range spo {
@@ -59,6 +65,7 @@ func (sp *talosProducer) url(tags url.Values) (string, error) {
 	}
 	return fmt.Sprintf("https://%v?%v", h, tags.Encode()), nil
 }
+
 func (sp *talosProducer) For(v *api.Volume) (api.Secrets, error) {
 	url, err := sp.url(v.Tags)
 	if err != nil {
