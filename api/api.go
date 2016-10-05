@@ -1,3 +1,5 @@
+// Package api provides value types and convenience functions around them for
+// the secret-volume service.
 package api
 
 import (

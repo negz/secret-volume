@@ -1,3 +1,5 @@
+// Package fixtures provides convenience test fixtures shared by other
+// packages of secret-volume.
 package fixtures
 
 import (

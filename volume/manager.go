@@ -1,3 +1,5 @@
+// Package volume manages the creation, deletion, and inspection of secret
+// volumes.
 package volume
 
 import (

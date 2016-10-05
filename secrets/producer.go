@@ -1,3 +1,5 @@
+// Package secrets handles the production of and access to collections of
+// secrets. i.e. files containing sensitive data such as passwords.
 package secrets
 
 import (

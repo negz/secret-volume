@@ -1,3 +1,5 @@
+// Package server provides a HTTP based JSON REST interface for creating,
+// reading, and deleting secret volumes.
 package server
 
 import (

@@ -1,3 +1,6 @@
+// Package cmd is essentially the main() of the secret volume service.
+// It is a separate package to allow convenient use of Go build tags to control
+// debug logging and system calls.
 package cmd
 
 import (
