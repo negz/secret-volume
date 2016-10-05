@@ -76,10 +76,3 @@ func Run() {
 	http := handlers.HTTPServer(*addr)
 	kingpin.FatalIfError(httpdown.ListenAndServe(http, hd), "HTTP server error")
 }
-
-/*
-TODO(negz):
-- expvar, github.com/pkg/errors, etc
-- Vendor and dockerize
-- Generate Puppet client certs for each volume (container) automatically?
-*/
