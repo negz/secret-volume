@@ -16,22 +16,22 @@ import (
 	"github.com/uber-go/zap"
 )
 
-type talosSecretProducer struct {
+type talosProducer struct {
 	lb  lb.LoadBalancer
 	ctx context.Context
 }
 
-type TalosSecretProviderOption func(sp *talosSecretProducer) error
+type TalosProducerOption func(sp *talosProducer) error
 
-func WithContext(ctx context.Context) TalosSecretProviderOption {
-	return func(sp *talosSecretProducer) error {
+func WithContext(ctx context.Context) TalosProducerOption {
+	return func(sp *talosProducer) error {
 		sp.ctx = ctx
 		return nil
 	}
 }
 
-func NewTalosSecretProducer(lb lb.LoadBalancer, spo ...TalosSecretProviderOption) (SecretProducer, error) {
-	sp := &talosSecretProducer{lb, context.Background()}
+func NewTalosProducer(lb lb.LoadBalancer, spo ...TalosProducerOption) (Producer, error) {
+	sp := &talosProducer{lb, context.Background()}
 	for _, o := range spo {
 		if err := o(sp); err != nil {
 			return nil, err
@@ -52,14 +52,14 @@ func httpClientFor(v *api.Volume) (*http.Client, error) {
 	return &http.Client{Transport: &http.Transport{TLSClientConfig: cfg}}, nil
 }
 
-func (sp *talosSecretProducer) url(tags url.Values) (string, error) {
+func (sp *talosProducer) url(tags url.Values) (string, error) {
 	h, err := sp.lb.Next()
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("https://%v?%v", h, tags.Encode()), nil
 }
-func (sp *talosSecretProducer) For(v *api.Volume) (api.Secrets, error) {
+func (sp *talosProducer) For(v *api.Volume) (api.Secrets, error) {
 	url, err := sp.url(v.Tags)
 	if err != nil {
 		return nil, err
@@ -75,5 +75,5 @@ func (sp *talosSecretProducer) For(v *api.Volume) (api.Secrets, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTarGzSecrets(v, r.Body)
+	return NewTarGz(v, r.Body)
 }

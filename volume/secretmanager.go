@@ -16,7 +16,7 @@ type secretManager struct {
 	m           Mounter
 	fs          afero.Fs
 	af          *afero.Afero
-	producerFor secrets.SecretProducers
+	producerFor secrets.Producers
 	meta        string
 	dmode       os.FileMode
 	fmode       os.FileMode
@@ -53,7 +53,7 @@ func FileMode(m os.FileMode) SecretManagerOption {
 	}
 }
 
-func NewSecretManager(m Mounter, sp secrets.SecretProducers, vmo ...SecretManagerOption) (Manager, error) {
+func NewSecretManager(m Mounter, sp secrets.Producers, vmo ...SecretManagerOption) (Manager, error) {
 	fs := afero.NewOsFs()
 	vm := &secretManager{
 		m,

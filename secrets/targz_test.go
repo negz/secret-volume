@@ -18,10 +18,10 @@ var tarGzTests = []struct {
 	{"../fixtures/yaml.tar.gz", fixtures.TestVolume, 3},
 }
 
-func TestTarGzSecrets(t *testing.T) {
+func TestTarGz(t *testing.T) {
 	for _, tt := range tarGzTests {
 		fs := afero.NewOsFs()
-		sd, _ := OpenTarGzSecrets(tt.v, fs, tt.f)
+		sd, _ := OpenTarGz(tt.v, fs, tt.f)
 		t.Run("Extract", func(t *testing.T) {
 			found := 0
 			for {

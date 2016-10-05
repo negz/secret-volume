@@ -52,12 +52,12 @@ func Run() {
 	kingpin.Parse()
 
 	// Setup TSP
-	sp, err := secrets.NewTalosSecretProducer(setupLb(*ns, *pod, *srv))
+	sp, err := secrets.NewTalosProducer(setupLb(*ns, *pod, *srv))
 	kingpin.FatalIfError(err, "unable to setup Talos secret producer")
 
 	// Setup volume manager
 	m, fs := setupFs(*virt, *mount)
-	sps := map[api.SecretSource]secrets.SecretProducer{api.Talos: sp}
+	sps := map[api.SecretSource]secrets.Producer{api.Talos: sp}
 	vm, err := volume.NewSecretManager(m, sps, volume.Filesystem(fs))
 	kingpin.FatalIfError(err, "unable to setup secret volume manager")
 

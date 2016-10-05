@@ -58,12 +58,12 @@ var talosSecretsProducerTests = []struct {
 	},
 }
 
-func TestTalosSecretProducer(t *testing.T) {
+func TestTalosProducer(t *testing.T) {
 	for _, tt := range talosSecretsProducerTests {
 		v, _ := fixtures.TestVolumeWithCert(tt.c, tt.k)
 
 		fs := afero.NewOsFs()
-		expected, _ := OpenTarGzSecrets(v, fs, tt.f)
+		expected, _ := OpenTarGz(v, fs, tt.f)
 		defer expected.Close()
 
 		ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -84,9 +84,9 @@ func TestTalosSecretProducer(t *testing.T) {
 			continue
 		}
 
-		sp, err := NewTalosSecretProducer(lb)
+		sp, err := NewTalosProducer(lb)
 		if err != nil {
-			t.Errorf("NewTalosSecretProducer(%v): %v", lb, err)
+			t.Errorf("NewTalosProducer(%v): %v", lb, err)
 			continue
 		}
 

@@ -15,11 +15,11 @@ import (
 	"github.com/negz/secret-volume/secrets"
 )
 
-type boringSecretProducer struct {
+type boringProducer struct {
 	s api.Secrets
 }
 
-func (sp *boringSecretProducer) For(v *api.Volume) (api.Secrets, error) {
+func (sp *boringProducer) For(v *api.Volume) (api.Secrets, error) {
 	return sp.s, nil
 }
 
@@ -40,14 +40,14 @@ func TestSecretManager(t *testing.T) {
 		if tt.f == "" {
 			s = fixtures.NewBoringSecrets(tt.v)
 		} else {
-			tgz, err := secrets.OpenTarGzSecrets(tt.v, afero.NewOsFs(), tt.f)
+			tgz, err := secrets.OpenTarGz(tt.v, afero.NewOsFs(), tt.f)
 			if err != nil {
-				t.Errorf("OpenTarGzSecrets(%v, %v, %v): %v", tt.v, afero.NewOsFs(), tt.f, err)
+				t.Errorf("OpenTarGz(%v, %v, %v): %v", tt.v, afero.NewOsFs(), tt.f, err)
 				continue
 			}
 			s = tgz
 		}
-		sp := secrets.SecretProducers{api.Talos: &boringSecretProducer{s}}
+		sp := secrets.Producers{api.Talos: &boringProducer{s}}
 		vm, _ := NewSecretManager(m, sp, Filesystem(fs), MetadataFile("someta"))
 
 		t.Run("DestroyBeforeCreated", func(t *testing.T) {

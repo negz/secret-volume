@@ -8,8 +8,8 @@ import (
 
 var UnhandledSecretSourceError = errors.New("unhandled secret source")
 
-type SecretProducer interface {
+type Producer interface {
 	For(*api.Volume) (api.Secrets, error)
 }
 
-type SecretProducers map[api.SecretSource]SecretProducer
+type Producers map[api.SecretSource]Producer
