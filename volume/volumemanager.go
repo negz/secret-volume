@@ -11,7 +11,7 @@ var PathDoesNotExistError = errors.New("cannot destroy volume: path is not a dir
 var UnknownVolumeError = errors.New("unknown volume")
 var MissingMountpointError = errors.New("mountpoint does not exist")
 
-type VolumeManager interface {
+type Manager interface {
 	Create(v *api.Volume) error
 	Destroy(id string) error
 	Get(id string) (*api.Volume, error)

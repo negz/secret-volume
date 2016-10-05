@@ -10,27 +10,27 @@ import (
 	"github.com/negz/secret-volume/volume"
 )
 
-type HttpHandlers struct {
-	v     volume.VolumeManager
-	r     HttpRouter
+type HTTPHandlers struct {
+	v     volume.Manager
+	r     HTTPRouter
 	idKey string
 }
 
-type HttpHandlersOption func(*HttpHandlers) error
+type HTTPHandlersOption func(*HTTPHandlers) error
 
-func HttpHandlersRouter(r HttpRouter) HttpHandlersOption {
-	return func(h *HttpHandlers) error {
+func HTTPHandlersRouter(r HTTPRouter) HTTPHandlersOption {
+	return func(h *HTTPHandlers) error {
 		h.r = r
 		return nil
 	}
 }
 
-func NewHttpHandlers(v volume.VolumeManager, ho ...HttpHandlersOption) (*HttpHandlers, error) {
-	r, err := NewHRHttpRouter()
+func NewHTTPHandlers(v volume.Manager, ho ...HTTPHandlersOption) (*HTTPHandlers, error) {
+	r, err := NewHRHTTPRouter()
 	if err != nil {
 		return nil, err
 	}
-	s := &HttpHandlers{v, r, "id"}
+	s := &HTTPHandlers{v, r, "id"}
 	for _, o := range ho {
 		if err := o(s); err != nil {
 			return nil, err
@@ -39,19 +39,19 @@ func NewHttpHandlers(v volume.VolumeManager, ho ...HttpHandlersOption) (*HttpHan
 	return s, nil
 }
 
-func (h *HttpHandlers) setupRoutes() {
-	h.r.GET("/", http.HandlerFunc(logReq(json(h.list))))
-	h.r.POST("/", http.HandlerFunc(logReq(json(h.create))))
-	h.r.GET("/:id", http.HandlerFunc(logReq(json(h.ensureParam(h.get, h.idKey)))))
-	h.r.DELETE("/:id", http.HandlerFunc(logReq(h.ensureParam(h.delete, h.idKey))))
+func (h *HTTPHandlers) setupRoutes() {
+	h.r.GET("/", logReq(json(h.list)))
+	h.r.POST("/", logReq(json(h.create)))
+	h.r.GET("/:id", logReq(json(h.ensureParam(h.get, h.idKey))))
+	h.r.DELETE("/:id", logReq(h.ensureParam(h.delete, h.idKey)))
 }
 
-func (h *HttpHandlers) HttpServer(addr string) *http.Server {
+func (h *HTTPHandlers) HTTPServer(addr string) *http.Server {
 	h.setupRoutes()
 	return &http.Server{Addr: addr, Handler: h.r}
 }
 
-func (h *HttpHandlers) list(w http.ResponseWriter, _ *http.Request) {
+func (h *HTTPHandlers) list(w http.ResponseWriter, _ *http.Request) {
 	vs, err := h.v.List()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -62,7 +62,7 @@ func (h *HttpHandlers) list(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (h *HttpHandlers) get(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPHandlers) get(w http.ResponseWriter, r *http.Request) {
 	id := h.r.GetParam(r, h.idKey)
 	v, err := h.v.Get(id)
 	if err != nil {
@@ -74,7 +74,7 @@ func (h *HttpHandlers) get(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HttpHandlers) create(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPHandlers) create(w http.ResponseWriter, r *http.Request) {
 	v, err := api.ReadVolumeJSON(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -94,7 +94,7 @@ func (h *HttpHandlers) create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HttpHandlers) delete(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPHandlers) delete(w http.ResponseWriter, r *http.Request) {
 	id := h.r.GetParam(r, h.idKey)
 	if err := h.v.Destroy(id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -102,7 +102,7 @@ func (h *HttpHandlers) delete(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *HttpHandlers) ensureParam(fn http.HandlerFunc, p string) http.HandlerFunc {
+func (h *HTTPHandlers) ensureParam(fn http.HandlerFunc, p string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if h.r.GetParam(r, p) == "" {
 			http.Error(w, fmt.Sprintf("Missing URL component: %v", p), http.StatusBadRequest)

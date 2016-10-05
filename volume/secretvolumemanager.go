@@ -12,7 +12,7 @@ import (
 	"github.com/negz/secret-volume/secrets"
 )
 
-type secretVolumeManager struct {
+type secretManager struct {
 	m           Mounter
 	fs          afero.Fs
 	af          *afero.Afero
@@ -22,43 +22,43 @@ type secretVolumeManager struct {
 	fmode       os.FileMode
 }
 
-type SecretVolumeManagerOption func(*secretVolumeManager) error
+type SecretManagerOption func(*secretManager) error
 
-func Filesystem(fs afero.Fs) SecretVolumeManagerOption {
-	return func(vm *secretVolumeManager) error {
+func Filesystem(fs afero.Fs) SecretManagerOption {
+	return func(vm *secretManager) error {
 		vm.fs = fs
-		vm.af = &afero.Afero{fs}
+		vm.af = &afero.Afero{Fs: fs}
 		return nil
 	}
 }
 
-func MetadataFile(f string) SecretVolumeManagerOption {
-	return func(vm *secretVolumeManager) error {
+func MetadataFile(f string) SecretManagerOption {
+	return func(vm *secretManager) error {
 		vm.meta = f
 		return nil
 	}
 }
 
-func DirMode(m os.FileMode) SecretVolumeManagerOption {
-	return func(vm *secretVolumeManager) error {
+func DirMode(m os.FileMode) SecretManagerOption {
+	return func(vm *secretManager) error {
 		vm.dmode = m
 		return nil
 	}
 }
 
-func FileMode(m os.FileMode) SecretVolumeManagerOption {
-	return func(vm *secretVolumeManager) error {
+func FileMode(m os.FileMode) SecretManagerOption {
+	return func(vm *secretManager) error {
 		vm.fmode = m
 		return nil
 	}
 }
 
-func NewSecretVolumeManager(m Mounter, sp secrets.SecretProducers, vmo ...SecretVolumeManagerOption) (VolumeManager, error) {
+func NewSecretManager(m Mounter, sp secrets.SecretProducers, vmo ...SecretManagerOption) (Manager, error) {
 	fs := afero.NewOsFs()
-	vm := &secretVolumeManager{
+	vm := &secretManager{
 		m,
 		fs,
-		&afero.Afero{fs},
+		&afero.Afero{Fs: fs},
 		sp,
 		".meta",
 		0700,
@@ -72,7 +72,7 @@ func NewSecretVolumeManager(m Mounter, sp secrets.SecretProducers, vmo ...Secret
 	return vm, nil
 }
 
-func (vm *secretVolumeManager) createFile(id, file string) (afero.File, error) {
+func (vm *secretManager) createFile(id, file string) (afero.File, error) {
 	p := path.Join(vm.m.Path(id), file)
 	d := path.Dir(p)
 	// Talos serves tarballs without directories.
@@ -88,7 +88,7 @@ func (vm *secretVolumeManager) createFile(id, file string) (afero.File, error) {
 	return vm.fs.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, vm.fmode)
 }
 
-func (vm *secretVolumeManager) writeSecrets(v *api.Volume, s api.Secrets) error {
+func (vm *secretManager) writeSecrets(v *api.Volume, s api.Secrets) error {
 	for {
 		h, err := s.Next()
 		if err == io.EOF {
@@ -112,12 +112,14 @@ func (vm *secretVolumeManager) writeSecrets(v *api.Volume, s api.Secrets) error 
 				f.Close()
 				return err
 			}
-			f.Close()
+			if err := f.Close(); err != nil {
+				return err
+			}
 		}
 	}
 }
 
-func (vm *secretVolumeManager) writeMetadata(v *api.Volume) error {
+func (vm *secretManager) writeMetadata(v *api.Volume) error {
 	// TODO(negz): Use some binary serialisation for the metadata?
 	f, err := vm.createFile(v.Id, vm.meta)
 	if err != nil {
@@ -127,7 +129,7 @@ func (vm *secretVolumeManager) writeMetadata(v *api.Volume) error {
 	return v.WriteJSON(f)
 }
 
-func (vm *secretVolumeManager) Create(v *api.Volume) error {
+func (vm *secretManager) Create(v *api.Volume) error {
 	if exists, err := vm.af.Exists(vm.m.Path(v.Id)); err != nil {
 		return err
 	} else if exists {
@@ -158,7 +160,7 @@ func (vm *secretVolumeManager) Create(v *api.Volume) error {
 	return nil
 }
 
-func (vm *secretVolumeManager) Destroy(id string) error {
+func (vm *secretManager) Destroy(id string) error {
 	if exists, err := vm.af.DirExists(vm.m.Path(id)); err != nil {
 		return err
 	} else if !exists {
@@ -175,7 +177,7 @@ func (vm *secretVolumeManager) Destroy(id string) error {
 	return nil
 }
 
-func (vm *secretVolumeManager) readMetadata(id string) (*api.Volume, error) {
+func (vm *secretManager) readMetadata(id string) (*api.Volume, error) {
 	f, err := vm.fs.Open(path.Join(vm.m.Path(id), vm.MetadataFile()))
 	if err != nil {
 		return nil, err
@@ -191,7 +193,7 @@ func (vm *secretVolumeManager) readMetadata(id string) (*api.Volume, error) {
 	return v, nil
 }
 
-func (vm *secretVolumeManager) Get(id string) (*api.Volume, error) {
+func (vm *secretManager) Get(id string) (*api.Volume, error) {
 	if exists, err := vm.af.DirExists(vm.m.Path(id)); err != nil {
 		return nil, err
 	} else if !exists {
@@ -200,7 +202,7 @@ func (vm *secretVolumeManager) Get(id string) (*api.Volume, error) {
 	return vm.readMetadata(id)
 }
 
-func (vm *secretVolumeManager) List() (api.Volumes, error) {
+func (vm *secretManager) List() (api.Volumes, error) {
 	if exists, err := vm.af.DirExists(vm.m.Root()); err != nil {
 		return nil, err
 	} else if !exists {
@@ -230,6 +232,6 @@ func (vm *secretVolumeManager) List() (api.Volumes, error) {
 	return vols, nil
 }
 
-func (vm *secretVolumeManager) MetadataFile() string {
+func (vm *secretManager) MetadataFile() string {
 	return vm.meta
 }

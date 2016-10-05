@@ -40,7 +40,7 @@ func setupLb(ns, pod, srv string) lb.LoadBalancer {
 
 	var record string
 	if srv == "" {
-		record = fmt.Sprintf(srv, pod)
+		record = fmt.Sprintf(srvFormat, pod)
 	} else {
 		record = srv
 	}
@@ -58,16 +58,16 @@ func Run() {
 	// Setup volume manager
 	m, fs := setupFs(*virt, *mount)
 	sps := map[api.SecretSource]secrets.SecretProducer{api.Talos: sp}
-	vm, err := volume.NewSecretVolumeManager(m, sps, volume.Filesystem(fs))
+	vm, err := volume.NewSecretManager(m, sps, volume.Filesystem(fs))
 	kingpin.FatalIfError(err, "unable to setup secret volume manager")
 
 	// Setup HTTP handlers
-	handlers, err := server.NewHttpHandlers(vm)
+	handlers, err := server.NewHTTPHandlers(vm)
 	kingpin.FatalIfError(err, "unable to setup HTTP handlers")
 
 	// Serve!
 	hd := &httpdown.HTTP{StopTimeout: *stop, KillTimeout: *kill}
-	http := handlers.HttpServer(*addr)
+	http := handlers.HTTPServer(*addr)
 	kingpin.FatalIfError(httpdown.ListenAndServe(http, hd), "HTTP server error")
 }
 

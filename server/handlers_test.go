@@ -33,10 +33,10 @@ func (v *noopVolumeManager) MetadataFile() string {
 	return ".meta"
 }
 
-func TestHttpHandlers(t *testing.T) {
-	h, err := NewHttpHandlers(&noopVolumeManager{})
+func TestHTTPHandlers(t *testing.T) {
+	h, err := NewHTTPHandlers(&noopVolumeManager{})
 	if err != nil {
-		t.Errorf("NewHttpHandlers(): %v", err)
+		t.Errorf("NewHTTPHandlers(): %v", err)
 		return
 	}
 

@@ -43,7 +43,7 @@ func (sd *tarGzSecrets) Volume() *api.Volume {
 }
 
 func fromTarHeader(h *tar.Header) *api.SecretsHeader {
-	return &api.SecretsHeader{h.Name, h.FileInfo()}
+	return &api.SecretsHeader{Path: h.Name, FileInfo: h.FileInfo()}
 }
 
 func (sd *tarGzSecrets) Next() (*api.SecretsHeader, error) {

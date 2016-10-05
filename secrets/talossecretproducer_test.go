@@ -36,7 +36,7 @@ func PredictableLoadBalancerFor(addr string) (lb.LoadBalancer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &predictableLoadBalancer{dns.Address{host, uint16(port)}, nil}, nil
+	return &predictableLoadBalancer{dns.Address{Address: host, Port: uint16(port)}, nil}, nil
 }
 
 func (lb *predictableLoadBalancer) Next() (dns.Address, error) {

@@ -21,11 +21,7 @@ var tarGzTests = []struct {
 func TestTarGzSecrets(t *testing.T) {
 	for _, tt := range tarGzTests {
 		fs := afero.NewOsFs()
-		sd, err := OpenTarGzSecrets(tt.v, fs, tt.f)
-		if err != nil {
-			t.Errorf("OpenTarGzSecrets(%v, %v, %v): %v", tt.v, fs, tt.f, err)
-			continue
-		}
+		sd, _ := OpenTarGzSecrets(tt.v, fs, tt.f)
 		t.Run("Extract", func(t *testing.T) {
 			found := 0
 			for {
@@ -41,11 +37,11 @@ func TestTarGzSecrets(t *testing.T) {
 					return
 				}
 				t.Logf("Found: %v", h.Path)
-				found += 1
+				found++
 			}
 		})
 		t.Run("Close", func(t *testing.T) {
-			if err = sd.Close(); err != nil {
+			if err := sd.Close(); err != nil {
 				t.Errorf("sd.Close(): %v", err)
 			}
 		})

@@ -23,7 +23,7 @@ func (sp *boringSecretProducer) For(v *api.Volume) (api.Secrets, error) {
 	return sp.s, nil
 }
 
-var secretVolumeManagerTests = []struct {
+var secretManagerTests = []struct {
 	v *api.Volume
 	f string
 }{
@@ -31,11 +31,11 @@ var secretVolumeManagerTests = []struct {
 	{fixtures.TestVolume, "../fixtures/yaml.tar.gz"},
 }
 
-func TestSecretVolumeManager(t *testing.T) {
+func TestSecretManager(t *testing.T) {
 	m := NewNoopMounter("/noop")
 	fs := afero.NewMemMapFs()
 
-	for _, tt := range secretVolumeManagerTests {
+	for _, tt := range secretManagerTests {
 		var s api.Secrets
 		if tt.f == "" {
 			s = fixtures.NewBoringSecrets(tt.v)
@@ -48,7 +48,7 @@ func TestSecretVolumeManager(t *testing.T) {
 			s = tgz
 		}
 		sp := secrets.SecretProducers{api.Talos: &boringSecretProducer{s}}
-		vm, _ := NewSecretVolumeManager(m, sp, Filesystem(fs), MetadataFile("someta"))
+		vm, _ := NewSecretManager(m, sp, Filesystem(fs), MetadataFile("someta"))
 
 		t.Run("DestroyBeforeCreated", func(t *testing.T) {
 			if err := vm.Destroy(tt.v.Id); err != PathDoesNotExistError {

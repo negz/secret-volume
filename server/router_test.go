@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var hrHttpRouterTests = []struct {
+var hrHTTPRouterTests = []struct {
 	route string
 	url   string
 	k     string
@@ -32,11 +32,11 @@ func (m *mockResponseWriter) WriteString(s string) (n int, err error) {
 }
 
 func (m *mockResponseWriter) WriteHeader(int) {}
-func TestHRHttpRouter(t *testing.T) {
-	for _, tt := range hrHttpRouterTests {
-		r, err := NewHRHttpRouter()
+func TestHRHTTPRouter(t *testing.T) {
+	for _, tt := range hrHTTPRouterTests {
+		r, err := NewHRHTTPRouter()
 		if err != nil {
-			t.Errorf("NewHRHttpRouter(): %v", err)
+			t.Errorf("NewHRHTTPRouter(): %v", err)
 			continue
 		}
 		t.Run("GetParam", func(t *testing.T) {

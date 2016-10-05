@@ -19,15 +19,20 @@ func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 		return nil, err
 	}
 	v := &api.Volume{
-		"hash",
-		api.Talos,
-		url.Values{"tag": []string{"awesome"}},
-		kp,
+		Id:      "hash",
+		Source:  api.Talos,
+		Tags:    url.Values{"tag": []string{"awesome"}},
+		KeyPair: kp,
 	}
 	return v, nil
 }
 
-var TestVolume = &api.Volume{"hash", api.Talos, url.Values{"tag": []string{"awesome"}}, api.KeyPair{}}
+var TestVolume = &api.Volume{
+	Id:      "hash",
+	Source:  api.Talos,
+	Tags:    url.Values{"tag": []string{"awesome"}},
+	KeyPair: api.KeyPair{},
+}
 
 var TestVolumes = api.Volumes{TestVolume}
 
@@ -75,7 +80,7 @@ func (s *boringSecrets) Next() (*api.SecretsHeader, error) {
 		return nil, io.EOF
 	}
 	s.read = true
-	return &api.SecretsHeader{"womp", &boringFileInfo{}}, nil
+	return &api.SecretsHeader{Path: "womp", FileInfo: &boringFileInfo{}}, nil
 }
 
 func (s *boringSecrets) Read(b []byte) (int, error) {
