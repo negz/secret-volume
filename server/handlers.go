@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"github.com/uber-go/zap"
 
 	"github.com/negz/secret-volume/api"
@@ -35,12 +36,12 @@ func HTTPHandlersRouter(r HTTPRouter) HTTPHandlersOption {
 func NewHTTPHandlers(v volume.Manager, ho ...HTTPHandlersOption) (*HTTPHandlers, error) {
 	r, err := NewHRHTTPRouter()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot create new HTTP router")
 	}
 	s := &HTTPHandlers{v, r, "id"}
 	for _, o := range ho {
 		if err := o(s); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "cannot apply HTTP handlers option")
 		}
 	}
 	return s, nil

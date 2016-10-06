@@ -9,16 +9,17 @@ import (
 	"time"
 
 	"github.com/negz/secret-volume/api"
+	"github.com/pkg/errors"
 )
 
 func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 	kp, err := api.NewKeyPair(c, k)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot create test volume keypair")
 	}
 	// Validate the keypair is parseable early
 	if _, err := kp.ToCertificate(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot parse test volume cert")
 	}
 	v := &api.Volume{
 		ID:      "hash",

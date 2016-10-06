@@ -20,14 +20,14 @@ import (
 )
 
 var (
-	pod   = kingpin.Arg("pod", "Pod in which to lookup Talos").Required().String()
-	addr  = kingpin.Flag("addr", "Address at which to serve requests (host:port)").Default(":10002").String()
-	srv   = kingpin.Flag("srv", "SRV record at which to lookup Talos. Overrides pod").String()
-	ns    = kingpin.Flag("ns", "DNS server to use to lookup Poppy SRV records (host:port)").String()
-	mount = kingpin.Flag("mountpoint", "Where to mount secret volumes").Short('m').Default("/secrets").ExistingDir()
-	virt  = kingpin.Flag("virtual", "Use an in-memory filesystem and a no-op mounter for testing").Bool()
-	stop  = kingpin.Flag("close-after", "Wait this long at shutdown before closing HTTP connections.").Default("1m").Duration()
-	kill  = kingpin.Flag("kill-after", "Wait this long at shutdown before exiting.").Default("2m").Duration()
+	pod    = kingpin.Arg("pod", "Pod in which to lookup Talos").Required().String()
+	addr   = kingpin.Flag("addr", "Address at which to serve requests (host:port)").Default(":10002").String()
+	srv    = kingpin.Flag("srv", "SRV record at which to lookup Talos. Overrides pod").String()
+	ns     = kingpin.Flag("ns", "DNS server to use to lookup Poppy SRV records (host:port)").String()
+	parent = kingpin.Flag("parent", "Directory under which to mount secret volumes").Short('p').Default("/secrets").ExistingDir()
+	virt   = kingpin.Flag("virtual", "Use an in-memory filesystem and a no-op parenter for testing").Bool()
+	stop   = kingpin.Flag("close-after", "Wait this long at shutdown before closing HTTP connections.").Default("1m").Duration()
+	kill   = kingpin.Flag("kill-after", "Wait this long at shutdown before exiting.").Default("2m").Duration()
 )
 
 const srvFormat = "_spotify-poppy._tcp.services.%s.spotify.net"
@@ -57,21 +57,19 @@ func setupLb(ns, pod, srv string) lb.LoadBalancer {
 func Run() {
 	kingpin.Parse()
 
-	// Setup TSP
 	sp, err := secrets.NewTalosProducer(setupLb(*ns, *pod, *srv))
-	kingpin.FatalIfError(err, "unable to setup Talos secret producer")
+	kingpin.FatalIfError(err, "cannot setup Talos secret producer")
 
-	// Setup volume manager
-	m, fs := setupFs(*virt, *mount)
+	m, fs, err := setupFs(*virt, *parent)
+	kingpin.FatalIfError(err, "cannot setup filesystem and parenter")
+
 	sps := map[api.SecretSource]secrets.Producer{api.Talos: sp}
 	vm, err := volume.NewManager(m, sps, volume.Filesystem(fs))
-	kingpin.FatalIfError(err, "unable to setup secret volume manager")
+	kingpin.FatalIfError(err, "cannot setup secret volume manager")
 
-	// Setup HTTP handlers
 	handlers, err := server.NewHTTPHandlers(vm)
-	kingpin.FatalIfError(err, "unable to setup HTTP handlers")
+	kingpin.FatalIfError(err, "cannot setup HTTP handlers")
 
-	// Serve!
 	hd := &httpdown.HTTP{StopTimeout: *stop, KillTimeout: *kill}
 	http := handlers.HTTPServer(*addr)
 	kingpin.FatalIfError(httpdown.ListenAndServe(http, hd), "HTTP server error")

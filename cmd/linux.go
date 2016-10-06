@@ -4,19 +4,21 @@ package cmd
 
 import (
 	"github.com/negz/secret-volume/volume"
+	"github.com/pkg/errors"
 
 	"github.com/spf13/afero"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func setupFs(virt bool, mount string) (volume.Mounter, afero.Fs) {
+func setupFs(virt bool, root string) (volume.Mounter, afero.Fs, error) {
 	if virt {
 		log.Debug("Using in-memory filesystem and noop mounter")
-		return volume.NewNoopMounter(mount), afero.NewMemMapFs()
+		return volume.NewNoopMounter(root), afero.NewMemMapFs(), nil
 	}
-	tmpfs, err := volume.NewTmpFsMounter(mount)
-	kingpin.FatalIfError(err, "unable to setup tmpfs mounter")
+	tmpfs, err := volume.NewTmpFsMounter(root)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "cannot setup tmpfs mounter")
+	}
 
 	log.Debug("Using OS filesystem and tmpfs mounter")
-	return tmpfs, afero.NewOsFs()
+	return tmpfs, afero.NewOsFs(), nil
 }

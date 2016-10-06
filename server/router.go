@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/pkg/errors"
 )
 
 // A HTTPRouter provides a HTTP request router (aka) mux implementation.
@@ -55,7 +56,7 @@ func NewHRHTTPRouter(ro ...HRHTTPRouterOption) (HTTPRouter, error) {
 	r := &hrHTTPRouter{httprouter.New(), hrParams{}}
 	for _, o := range ro {
 		if err := o(r); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "cannot apply HTTP router option")
 		}
 	}
 	return r, nil

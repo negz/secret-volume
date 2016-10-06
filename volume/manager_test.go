@@ -51,7 +51,7 @@ func TestManager(t *testing.T) {
 		vm, _ := NewManager(m, sp, Filesystem(fs), MetadataFile("someta"))
 
 		t.Run("DestroyBeforeCreated", func(t *testing.T) {
-			if err := vm.Destroy(tt.v.ID); err != PathDoesNotExistError {
+			if err := vm.Destroy(tt.v.ID); err != ErrNonExist {
 				t.Errorf("vm.Destroy(%v): %v", tt.v.ID, err)
 			}
 		})
@@ -102,7 +102,7 @@ func TestManager(t *testing.T) {
 		})
 
 		t.Run("CreateWhenExists", func(t *testing.T) {
-			if err := vm.Create(tt.v); err != PathExistsError {
+			if err := vm.Create(tt.v); err != ErrExists {
 				t.Errorf("vm.Create(%v): %v", tt.v, err)
 			}
 		})
@@ -111,6 +111,10 @@ func TestManager(t *testing.T) {
 			l, err := vm.List()
 			if err != nil {
 				t.Errorf("vm.List(): %v", err)
+			}
+			if len(l) < 1 {
+				t.Errorf("len(%v): want 1, got %v", l, len(l))
+				return
 			}
 			if !reflect.DeepEqual(l[0], tt.v) {
 				t.Errorf("vm.Get(%v): Want %v, got %v", tt.v.ID, tt.v, l[0])

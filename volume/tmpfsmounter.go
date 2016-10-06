@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/negz/secret-volume/api"
+	"github.com/pkg/errors"
 
 	"github.com/uber-go/zap"
 	"golang.org/x/sys/unix"
@@ -67,7 +68,7 @@ func NewTmpFsMounter(root string, mo ...TmpFsMounterOption) (Mounter, error) {
 	m := &tmpFsMounter{root, 100, 700, unix.MS_NOSUID | unix.MS_NODEV | unix.MS_NOEXEC, 0}
 	for _, o := range mo {
 		if err := o(m); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "cannot apply tmpfs mounter option")
 		}
 	}
 	return m, nil
@@ -88,10 +89,10 @@ func (m *tmpFsMounter) flags() string {
 func (m *tmpFsMounter) Mount(v *api.Volume) error {
 	f := m.flags()
 	log.Debug("mount", zap.String("path", m.Path(v.ID)), zap.String("flags", f))
-	return unix.Mount("tmpfs", m.Path(v.ID), "tmpfs", m.mflags, f)
+	return errors.Wrap(unix.Mount("tmpfs", m.Path(v.ID), "tmpfs", m.mflags, f), "cannot mount tmpfs volume")
 }
 
 func (m *tmpFsMounter) Unmount(id string) error {
 	log.Debug("unmount", zap.String("path", m.Path(id)))
-	return unix.Unmount(m.Path(id), m.uflags)
+	return errors.Wrap(unix.Unmount(m.Path(id), m.uflags), "cannot unmount tmpfs volume")
 }
