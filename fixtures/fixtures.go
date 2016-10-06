@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TestVolumeWithCert generates a volume fixture from the supplied PEM certs
 func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 	kp, err := api.NewKeyPair(c, k)
 	if err != nil {
@@ -30,6 +31,7 @@ func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 	return v, nil
 }
 
+// TestVolume is a volume fixture
 var TestVolume = &api.Volume{
 	ID:      "hash",
 	Source:  api.Talos,
@@ -37,6 +39,7 @@ var TestVolume = &api.Volume{
 	KeyPair: api.KeyPair{},
 }
 
+// TestVolumes is a slice of volume fixtures
 var TestVolumes = api.Volumes{TestVolume}
 
 type boringFileInfo struct{}
@@ -70,6 +73,7 @@ type boringSecrets struct {
 	read bool
 }
 
+// NewBoringSecrets returns a very boring secrets fixture
 func NewBoringSecrets(v *api.Volume) api.Secrets {
 	return &boringSecrets{v, false}
 }
