@@ -1,0 +1,64 @@
+hash: 3e98dd8b0246f93d71eea7a922d992d8c83d5413b686d074fc8dea5b2676afeb
+updated: 2016-10-06T15:50:59.407754992-04:00
+imports:
+- name: github.com/alecthomas/template
+  version: a0175ee3bccc567396460bf5acd36800cb10c49c
+  subpackages:
+  - parse
+- name: github.com/alecthomas/units
+  version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
+- name: github.com/benschw/srv-lb
+  version: 95e2a7fdb2317ceb826fe1afa2c4266da041a0dc
+  subpackages:
+  - dns
+  - lb
+  - strategy/random
+- name: github.com/facebookgo/clock
+  version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
+- name: github.com/facebookgo/httpdown
+  version: a3b1354551a26449fbe05f5d855937f6e7acbd71
+- name: github.com/facebookgo/stats
+  version: 1b76add642e42c6ffba7211ad7b3939ce654526e
+- name: github.com/julienschmidt/httprouter
+  version: 8c199fb6259ffc1af525cc3ad52ee60ba8359669
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
+- name: github.com/miekg/dns
+  version: fc4e1e2843d86c346d7203160cfdbf14fa654a9b
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/pkg/sftp
+  version: 4d0e916071f68db74f8a73926335f809396d6b42
+- name: github.com/spf13/afero
+  version: 52e4a6cfac46163658bd4f123c49b6ee7dc75f78
+  subpackages:
+  - mem
+  - sftp
+- name: github.com/uber-go/atomic
+  version: 0c9e689d64f004564b79d9a663634756df322902
+- name: github.com/uber-go/zap
+  version: c4939d1166b2220bb45338e21506623b4bbdec50
+- name: golang.org/x/crypto
+  version: d172538b2cfce0c13cee31e647d0367aa8cd2486
+  subpackages:
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
+  - ssh
+- name: golang.org/x/net
+  version: 2a824cf9226006580a06d9fa8f10901c17b49ed5
+  subpackages:
+  - context
+  - context/ctxhttp
+- name: golang.org/x/sys
+  version: 8d1157a435470616f975ff9bb013bea8d0962067
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: bb361d5c81621301f3c467bd477d2589151004e2
+  subpackages:
+  - transform
+  - unicode/norm
+- name: gopkg.in/alecthomas/kingpin.v2
+  version: e9044be3ab2a8e11d4e1f418d12f0790d57e8d70
+testImports: []
