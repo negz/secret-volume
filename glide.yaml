@@ -1,0 +1,23 @@
+package: github.com/negz/secret-volume
+import:
+- package: github.com/benschw/srv-lb
+  subpackages:
+  - dns
+  - lb
+  - strategy/random
+- package: github.com/facebookgo/httpdown
+- package: github.com/julienschmidt/httprouter
+  version: ~1.1.0
+- package: github.com/pkg/errors
+  version: ~0.8.0
+- package: github.com/spf13/afero
+- package: github.com/uber-go/zap
+- package: golang.org/x/net
+  subpackages:
+  - context
+  - context/ctxhttp
+- package: golang.org/x/sys
+  subpackages:
+  - unix
+- package: gopkg.in/alecthomas/kingpin.v2
+  version: ~2.2.3

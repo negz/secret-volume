@@ -3,7 +3,7 @@
 set -e
 echo "" > coverage.txt
 
-for d in $(go list ./... | grep -v vendor); do
+for d in $(glide novendor); do
     go test -v -tags debug -race -coverprofile=profile.out $d
     if [ -f profile.out ]; then
         cat profile.out >> coverage.txt

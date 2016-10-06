@@ -7,11 +7,15 @@ go:
 before_install:
   - go get -u gopkg.in/alecthomas/gometalinter.v1
   - gometalinter.v1 --install
+  - bash <(curl -s https://glide.sh/get)
+
+install:
+  - glide install
 
 script:
   - ./test.sh
-  - gometalinter.v1 --deadline 30s --errors ./...
-  - gometalinter.v1 --deadline 30s --disable gas --exclude "_test\.go" --exclude "not checked.+Close" ./...
+  - gometalinter.v1 --deadline 30s --errors $(glide novendor)
+  - gometalinter.v1 --deadline 30s --disable gas --exclude "_test\.go" --exclude "not checked.+Close" $(glide novendor)
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
