@@ -3,11 +3,11 @@
 package volume
 
 import (
-	"errors"
 	"io"
 	"os"
 	"path"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/uber-go/zap"
 
@@ -15,10 +15,14 @@ import (
 	"github.com/negz/secret-volume/secrets"
 )
 
-var PathExistsError = errors.New("cannot create volume: path exists")
-var PathDoesNotExistError = errors.New("cannot destroy volume: path is not a directory")
-var UnknownVolumeError = errors.New("unknown volume")
-var MissingMountpointError = errors.New("mountpoint does not exist")
+// ErrExists is returned when when attempting to create a volume whose mount
+// point exists. Note this does not mean the volume already exists, just that a
+// conflicting path exists.
+var ErrExists = errors.New("volume path exists")
+
+// ErrNonExist is returned when attempting to get or destroy a volume that does
+// not exist.
+var ErrNonExist = errors.New("volume does not exist")
 
 // A Manager manages CRD operations for secret volumes.
 type Manager interface {
@@ -101,7 +105,7 @@ func NewManager(m Mounter, sp secrets.Producers, mo ...ManagerOption) (Manager, 
 	}
 	for _, o := range mo {
 		if err := o(sm); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "cannot apply manager option")
 		}
 	}
 	return sm, nil
@@ -112,15 +116,17 @@ func (sm *manager) createFile(id, file string) (afero.File, error) {
 	d := path.Dir(p)
 	// Talos serves tarballs without directories.
 	if exists, err := sm.af.DirExists(d); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot test directory existence while creating file")
 	} else if !exists {
 		log.Debug("creating directory", zap.String("path", d), zap.String("type", "implicit"))
 		if err := sm.af.MkdirAll(d, sm.dmode); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "cannot create parent directories while creating file")
 		}
 	}
 	log.Debug("creating file", zap.String("path", p))
-	return sm.fs.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_WRONLY, sm.fmode)
+	m := os.O_CREATE | os.O_EXCL | os.O_WRONLY
+	f, err := sm.fs.OpenFile(p, m, sm.fmode)
+	return f, errors.Wrap(err, "cannot open file for creation")
 }
 
 func (sm *manager) writeSecrets(v *api.Volume, s api.Secrets) error {
@@ -130,66 +136,66 @@ func (sm *manager) writeSecrets(v *api.Volume, s api.Secrets) error {
 			return nil
 		}
 		if err != nil {
-			return err
+			return errors.Wrap(err, "cannot iterate to next secret file")
 		}
+
 		if h.FileInfo.IsDir() {
 			d := path.Join(sm.m.Path(v.ID), h.Path)
 			log.Debug("creating directory", zap.String("path", d), zap.String("type", "explicit"))
 			if err := sm.fs.MkdirAll(d, sm.dmode); err != nil {
-				return err
+				return errors.Wrap(err, "cannot create secret directory")
 			}
 		} else {
 			f, err := sm.createFile(v.ID, h.Path)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "cannot create secret file")
 			}
 			if _, err := io.Copy(f, s); err != nil {
 				f.Close()
-				return err
+				return errors.Wrapf(err, "cannot copy secret to file %v", f.Name())
 			}
 			if err := f.Close(); err != nil {
-				return err
+				return errors.Wrapf(err, "cannot close secret file %v", f.Name())
 			}
 		}
 	}
 }
 
 func (sm *manager) writeMetadata(v *api.Volume) error {
-	// TODO(negz): Use some binary serialisation for the metadata?
 	f, err := sm.createFile(v.ID, sm.meta)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "cannot create metadata file")
 	}
 	defer f.Close()
-	return v.WriteJSON(f)
+	return errors.Wrap(v.WriteJSON(f), "cannot write to metadata file")
 }
 
 func (sm *manager) Create(v *api.Volume) error {
 	if exists, err := sm.af.Exists(sm.m.Path(v.ID)); err != nil {
-		return err
+		return errors.Wrap(err, "cannot test volume path existence")
 	} else if exists {
-		return PathExistsError
+		return ErrExists
 	}
 	sp, exists := sm.producerFor[v.Source]
 	if !exists {
-		return secrets.UnhandledSecretSourceError
+		return errors.New("no producer for secret type")
 	}
 	s, err := sp.For(v)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "cannot produce secret")
 	}
 	defer s.Close()
 	if err := sm.fs.MkdirAll(sm.m.Path(v.ID), sm.dmode); err != nil {
-		return err
+		return errors.Wrap(err, "cannot create volume path")
 	}
 	if err := sm.m.Mount(v); err != nil {
-		return err
+		return errors.Wrap(err, "cannot mount volume")
 	}
 	if err := sm.writeSecrets(v, s); err != nil {
-		return err
+		return errors.Wrap(err, "cannot write secrets")
 	}
 	if err := sm.writeMetadata(v); err != nil {
-		return err
+		return errors.Wrap(err, "cannot write metadata")
 	}
 	log.Info("created volume", zap.String("id", v.ID), zap.String("path", sm.m.Path(v.ID)))
 	return nil
@@ -197,15 +203,15 @@ func (sm *manager) Create(v *api.Volume) error {
 
 func (sm *manager) Destroy(id string) error {
 	if exists, err := sm.af.DirExists(sm.m.Path(id)); err != nil {
-		return err
+		return errors.Wrap(err, "cannot test volume path existence")
 	} else if !exists {
-		return PathDoesNotExistError
+		return ErrNonExist
 	}
 	if err := sm.m.Unmount(id); err != nil {
-		return err
+		return errors.Wrap(err, "cannot unmount volume")
 	}
 	if err := sm.fs.RemoveAll(sm.m.Path(id)); err != nil {
-		return err
+		return errors.Wrap(err, "cannot remove volume path")
 	}
 
 	log.Info("destroyed volume", zap.String("id", id), zap.String("path", sm.m.Path(id)))
@@ -215,13 +221,13 @@ func (sm *manager) Destroy(id string) error {
 func (sm *manager) readMetadata(id string) (*api.Volume, error) {
 	f, err := sm.fs.Open(path.Join(sm.m.Path(id), sm.MetadataFile()))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot open metadata file")
 	}
 	defer f.Close()
 
 	v, err := api.ReadVolumeJSON(f)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot read from metadata file")
 	}
 
 	log.Debug("read metadata", zap.String("id", v.ID))
@@ -230,28 +236,28 @@ func (sm *manager) readMetadata(id string) (*api.Volume, error) {
 
 func (sm *manager) Get(id string) (*api.Volume, error) {
 	if exists, err := sm.af.DirExists(sm.m.Path(id)); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot test volume path existence")
 	} else if !exists {
-		return nil, UnknownVolumeError
+		return nil, ErrNonExist
 	}
 	return sm.readMetadata(id)
 }
 
 func (sm *manager) List() (api.Volumes, error) {
 	if exists, err := sm.af.DirExists(sm.m.Root()); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot test parent directory existence")
 	} else if !exists {
-		return nil, MissingMountpointError
+		return nil, errors.New("parent directory does not exist")
 	}
 
 	f, err := sm.fs.Open(sm.m.Root())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot open parent directory for listing")
 	}
 
 	dirs, err := f.Readdirnames(0)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot list volumes in parent directory")
 	}
 
 	vols := make([]*api.Volume, 0, len(dirs))

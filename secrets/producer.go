@@ -2,13 +2,7 @@
 // secrets. i.e. files containing sensitive data such as passwords.
 package secrets
 
-import (
-	"errors"
-
-	"github.com/negz/secret-volume/api"
-)
-
-var UnhandledSecretSourceError = errors.New("unhandled secret source")
+import "github.com/negz/secret-volume/api"
 
 // A Producer produces secrets files for the supplied api.Volume.
 type Producer interface {

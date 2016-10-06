@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"github.com/uber-go/zap"
 
@@ -23,7 +24,7 @@ type tarGz struct {
 func NewTarGz(v *api.Volume, r io.ReadCloser) (api.Secrets, error) {
 	z, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot build new gzip reader")
 	}
 	return &tarGz{v, r, z, tar.NewReader(z)}, nil
 }
@@ -33,13 +34,10 @@ func NewTarGz(v *api.Volume, r io.ReadCloser) (api.Secrets, error) {
 func OpenTarGz(v *api.Volume, fs afero.Fs, file string) (api.Secrets, error) {
 	z, err := fs.Open(file)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot open tar.gz secrets")
 	}
 	s, err := NewTarGz(v, z)
-	if err != nil {
-		return nil, err
-	}
-	return s, nil
+	return s, errors.Wrap(err, "cannot build tar.gz secrets")
 }
 
 // Volume returns the Volume these secrets were produced for.
@@ -55,8 +53,11 @@ func fromTarHeader(h *tar.Header) *api.SecretsHeader {
 func (sd *tarGz) Next() (*api.SecretsHeader, error) {
 	for {
 		h, err := sd.t.Next()
-		if err != nil {
+		if err == io.EOF {
 			return nil, err
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot iterate to next file in tarball")
 		}
 		if !(h.FileInfo().Mode().IsDir() || h.FileInfo().Mode().IsRegular()) {
 			log.Debug("ignoring strange file",
@@ -71,13 +72,17 @@ func (sd *tarGz) Next() (*api.SecretsHeader, error) {
 // Read reads from the current secrets file, returning 0, io.EOF when that file
 // has been consumed. Call Next to advance to the next secrets file.
 func (sd *tarGz) Read(b []byte) (int, error) {
-	return sd.t.Read(b)
+	i, err := sd.t.Read(b)
+	if err == io.EOF {
+		return i, err
+	}
+	return i, errors.Wrap(err, "cannot read from tarball")
 }
 
 // Close closes the underlying gzip reader and tar readers.
 func (sd *tarGz) Close() error {
 	if err := sd.z.Close(); err != nil {
-		return err
+		return errors.Wrap(err, "cannot close tarball reader")
 	}
-	return sd.r.Close()
+	return errors.Wrap(sd.r.Close(), "cannot close gzip reader")
 }

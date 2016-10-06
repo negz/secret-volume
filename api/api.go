@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // A SecretSource determines and denotes which secrets.Provider implementation
@@ -43,7 +45,7 @@ func (s SecretSource) MarshalJSON() ([]byte, error) {
 func (s *SecretSource) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
-		return err
+		return errors.Wrapf(err, "cannot unmarshal %v", s)
 	}
 
 	switch strings.ToLower(str) {
@@ -70,18 +72,19 @@ type KeyPair struct {
 func NewKeyPair(cert, key string) (KeyPair, error) {
 	certPEM, err := ioutil.ReadFile(cert)
 	if err != nil {
-		return KeyPair{}, err
+		return KeyPair{}, errors.Wrapf(err, "cannot read %v", cert)
 	}
 	keyPEM, err := ioutil.ReadFile(key)
 	if err != nil {
-		return KeyPair{}, err
+		return KeyPair{}, errors.Wrapf(err, "cannot read %v", key)
 	}
 	return KeyPair{certPEM, keyPEM}, nil
 }
 
 // ToCertificate builds a tls.Certificate from KeyPair PEM data.
 func (k KeyPair) ToCertificate() (tls.Certificate, error) {
-	return tls.X509KeyPair(k.Certificate, k.PrivateKey)
+	crt, err := tls.X509KeyPair(k.Certificate, k.PrivateKey)
+	return crt, errors.Wrap(err, "cannot parse keypair")
 }
 
 // A Volume represents a 'secret volume' in which secrets for a particular
@@ -101,7 +104,7 @@ type Volume struct {
 
 // WriteJSON writes a JSON representation of a Volume to the supplied io.Writer.
 func (v *Volume) WriteJSON(w io.Writer) error {
-	return json.NewEncoder(w).Encode(v)
+	return errors.Wrapf(json.NewEncoder(w).Encode(v), "cannot write JSON for %v", v)
 }
 
 // ReadVolumeJSON creates a Volume by reading its JSON representation from the
@@ -109,7 +112,7 @@ func (v *Volume) WriteJSON(w io.Writer) error {
 func ReadVolumeJSON(r io.Reader) (*Volume, error) {
 	v := &Volume{}
 	if err := json.NewDecoder(r).Decode(v); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot read JSON")
 	}
 	return v, nil
 }
@@ -119,7 +122,7 @@ type Volumes []*Volume
 
 // WriteJSON writes a JSON representation of Volumes to the supplied io.Writer.
 func (vs Volumes) WriteJSON(w io.Writer) error {
-	return json.NewEncoder(w).Encode(vs)
+	return errors.Wrapf(json.NewEncoder(w).Encode(vs), "cannot write JSON for %v", vs)
 }
 
 // ReadVolumesJSON creates Volumes by reading their JSON representation from the
@@ -127,7 +130,7 @@ func (vs Volumes) WriteJSON(w io.Writer) error {
 func ReadVolumesJSON(r io.Reader) (Volumes, error) {
 	v := &Volumes{}
 	if err := json.NewDecoder(r).Decode(v); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "cannot read JSON")
 	}
 	return *v, nil
 }
