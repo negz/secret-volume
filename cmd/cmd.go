@@ -4,8 +4,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/negz/secret-volume/api"
 	"github.com/negz/secret-volume/secrets"
 	"github.com/negz/secret-volume/server"
@@ -20,19 +18,18 @@ import (
 )
 
 var (
-	pod    = kingpin.Arg("pod", "Pod in which to lookup Talos").Required().String()
+	// TODO(negz): Read Talos SRV from configuration
+	srv = kingpin.Arg("talos-srv", "SRV record at which to lookup Talos.").String()
+
 	addr   = kingpin.Flag("addr", "Address at which to serve requests (host:port)").Default(":10002").String()
-	srv    = kingpin.Flag("srv", "SRV record at which to lookup Talos. Overrides pod").String()
-	ns     = kingpin.Flag("ns", "DNS server to use to lookup Poppy SRV records (host:port)").String()
+	ns     = kingpin.Flag("ns", "DNS server to use to lookup SRV records (host:port)").String()
 	parent = kingpin.Flag("parent", "Directory under which to mount secret volumes").Short('p').Default("/secrets").ExistingDir()
 	virt   = kingpin.Flag("virtual", "Use an in-memory filesystem and a no-op parenter for testing").Bool()
 	stop   = kingpin.Flag("close-after", "Wait this long at shutdown before closing HTTP connections.").Default("1m").Duration()
 	kill   = kingpin.Flag("kill-after", "Wait this long at shutdown before exiting.").Default("2m").Duration()
 )
 
-const srvFormat = "_spotify-poppy._tcp.services.%s.spotify.net"
-
-func setupLb(ns, pod, srv string) lb.LoadBalancer {
+func setupLb(ns, srv string) lb.LoadBalancer {
 	var lib dns.Lookup
 	if ns == "" {
 		// TODO(negz): Handle error if/when https://github.com/benschw/srv-lb/pull/5 is merged
@@ -41,14 +38,7 @@ func setupLb(ns, pod, srv string) lb.LoadBalancer {
 		lib = dns.NewLookupLib(ns)
 	}
 
-	var record string
-	if srv == "" {
-		record = fmt.Sprintf(srvFormat, pod)
-	} else {
-		record = srv
-	}
-
-	return lb.New(&lb.Config{Dns: lib, Strategy: random.RandomStrategy}, record)
+	return lb.New(&lb.Config{Dns: lib, Strategy: random.RandomStrategy}, srv)
 }
 
 // Run is effectively the main() of the secretvolume binary.
@@ -57,7 +47,7 @@ func setupLb(ns, pod, srv string) lb.LoadBalancer {
 func Run() {
 	kingpin.Parse()
 
-	sp, err := secrets.NewTalosProducer(setupLb(*ns, *pod, *srv))
+	sp, err := secrets.NewTalosProducer(setupLb(*ns, *srv))
 	kingpin.FatalIfError(err, "cannot setup Talos secret producer")
 
 	m, fs, err := setupFs(*virt, *parent)
