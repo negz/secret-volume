@@ -1,0 +1,18 @@
+language: go
+
+go:
+  - 1.7
+  - tip
+
+before_install:
+  - go get -u gopkg.in/alecthomas/gometalinter.v1
+  - gometalinter.v1 --install
+
+script:
+  - ./test.sh
+  - gometalinter.v1 --deadline 30s --errors ./...
+  - gometalinter.v1 --deadline 30s --disable gas --exclude "_test\.go" --exclude "not checked.+Close" ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
