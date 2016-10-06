@@ -14,8 +14,8 @@ install:
 
 script:
   - ./test.sh
-  - gometalinter.v1 --deadline 30s --errors $(glide novendor)
-  - gometalinter.v1 --deadline 30s --disable gas --exclude "_test\.go" --exclude "not checked.+Close" $(glide novendor)
+  - gometalinter.v1 --deadline 5m --errors $(glide novendor)
+  - gometalinter.v1 --deadline 5m --disable gas --exclude "_test\.go" --exclude "not checked.+Close" $(glide novendor)
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
