@@ -3,14 +3,36 @@
 package fixtures
 
 import (
+	"encoding/json"
 	"io"
+	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
-	"github.com/negz/secret-volume/api"
+	"github.com/benschw/srv-lb/dns"
+	"github.com/benschw/srv-lb/lb"
 	"github.com/pkg/errors"
+
+	"github.com/negz/secret-volume/api"
 )
+
+// An InsecureVolume is a Volume that will include its KeyPair when writing JSON
+type InsecureVolume struct {
+	*api.Volume
+	KeyPair api.KeyPair
+}
+
+// WriteJSON writes an InsecureVolume as JSON, KeyPair and all.
+func (v *InsecureVolume) WriteJSON(w io.Writer) error {
+	return errors.Wrapf(json.NewEncoder(w).Encode(v), "cannot write JSON for %v", v)
+}
+
+// NewInsecureVolume creates an InsecureVolume from a regular old volume.
+func NewInsecureVolume(v *api.Volume) *InsecureVolume {
+	return &InsecureVolume{v, v.KeyPair}
+}
 
 // TestVolumeWithCert generates a volume fixture from the supplied PEM certs
 func TestVolumeWithCert(c, k string) (*api.Volume, error) {
@@ -96,4 +118,34 @@ func (s *boringSecrets) Read(b []byte) (int, error) {
 
 func (s *boringSecrets) Close() error {
 	return nil
+}
+
+type predictableLoadBalancer struct {
+	d   dns.Address
+	err error
+}
+
+// PredictableLoadBalancerFor returns a loadbalancer that always directs load to
+// the supplied addr.
+func PredictableLoadBalancerFor(addr string) (lb.LoadBalancer, error) {
+	u, err := url.Parse(addr)
+	if err != nil {
+		return nil, err
+	}
+	host, p, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return nil, err
+	}
+	port, err := strconv.Atoi(p)
+	if err != nil {
+		return nil, err
+	}
+	return &predictableLoadBalancer{dns.Address{Address: host, Port: uint16(port)}, nil}, nil
+}
+
+func (lb *predictableLoadBalancer) Next() (dns.Address, error) {
+	if lb.err != nil {
+		return dns.Address{}, lb.err
+	}
+	return lb.d, nil
 }

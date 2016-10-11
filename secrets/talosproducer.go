@@ -3,6 +3,7 @@ package secrets
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -82,6 +83,13 @@ func (sp *talosProducer) For(v *api.Volume) (api.Secrets, error) {
 	r, err := ctxhttp.Get(ctx, c, url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot fetch secrets from %v", url)
+	}
+	if r.StatusCode != http.StatusOK {
+		e, rerr := ioutil.ReadAll(r.Body)
+		if rerr != nil {
+			return nil, errors.Wrapf(rerr, "cannot read response body with status %v while fetching secrets from %v", r.Status, url)
+		}
+		return nil, errors.Errorf("cannot fetch secrets from %v: %v: %s", url, r.Status, e)
 	}
 	s, err := NewTarGz(v, r.Body)
 	return s, errors.Wrap(err, "cannot build tar.gz secrets")
