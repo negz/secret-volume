@@ -4,47 +4,14 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strconv"
 	"testing"
 
 	"github.com/negz/secret-volume/fixtures"
 
-	"github.com/benschw/srv-lb/dns"
-	"github.com/benschw/srv-lb/lb"
 	"github.com/spf13/afero"
 )
-
-type predictableLoadBalancer struct {
-	d   dns.Address
-	err error
-}
-
-func PredictableLoadBalancerFor(addr string) (lb.LoadBalancer, error) {
-	u, err := url.Parse(addr)
-	if err != nil {
-		return nil, err
-	}
-	host, p, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		return nil, err
-	}
-	port, err := strconv.Atoi(p)
-	if err != nil {
-		return nil, err
-	}
-	return &predictableLoadBalancer{dns.Address{Address: host, Port: uint16(port)}, nil}, nil
-}
-
-func (lb *predictableLoadBalancer) Next() (dns.Address, error) {
-	if lb.err != nil {
-		return dns.Address{}, lb.err
-	}
-	return lb.d, nil
-}
 
 var talosSecretsProducerTests = []struct {
 	c string
@@ -78,9 +45,9 @@ func TestTalosProducer(t *testing.T) {
 		ts.StartTLS()
 		defer ts.Close()
 
-		lb, err := PredictableLoadBalancerFor(ts.URL)
+		lb, err := fixtures.PredictableLoadBalancerFor(ts.URL)
 		if err != nil {
-			t.Errorf("PredictableLoadBalancerFor(%v): %v", ts.URL, err)
+			t.Errorf("fixtures.PredictableLoadBalancerFor(%v): %v", ts.URL, err)
 			continue
 		}
 

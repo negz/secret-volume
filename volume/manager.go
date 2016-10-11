@@ -18,11 +18,25 @@ import (
 // ErrExists is returned when when attempting to create a volume whose mount
 // point exists. Note this does not mean the volume already exists, just that a
 // conflicting path exists.
-var ErrExists = errors.New("volume path exists")
+type ErrExists string
+
+func (e ErrExists) Error() string {
+	return string(e)
+}
 
 // ErrNonExist is returned when attempting to get or destroy a volume that does
 // not exist.
-var ErrNonExist = errors.New("volume does not exist")
+type ErrNonExist string
+
+func (e ErrNonExist) Error() string {
+	return string(e)
+}
+
+// NotFound signals that this error should return a HTTP 404 not found if it
+// causes a HTTP request to fail.
+func (e ErrNonExist) NotFound() bool {
+	return true
+}
 
 // A Manager manages CRD operations for secret volumes.
 type Manager interface {
@@ -171,10 +185,12 @@ func (sm *manager) writeMetadata(v *api.Volume) error {
 }
 
 func (sm *manager) Create(v *api.Volume) error {
+	log.Debug("creating volume", zap.String("id", v.ID))
+
 	if exists, err := sm.af.Exists(sm.m.Path(v.ID)); err != nil {
 		return errors.Wrap(err, "cannot test volume path existence")
 	} else if exists {
-		return ErrExists
+		return ErrExists("volume exists")
 	}
 	sp, exists := sm.producerFor[v.Source]
 	if !exists {
@@ -202,10 +218,12 @@ func (sm *manager) Create(v *api.Volume) error {
 }
 
 func (sm *manager) Destroy(id string) error {
+	log.Debug("destroying volume", zap.String("id", id))
+
 	if exists, err := sm.af.DirExists(sm.m.Path(id)); err != nil {
 		return errors.Wrap(err, "cannot test volume path existence")
 	} else if !exists {
-		return ErrNonExist
+		return ErrNonExist("volume not found")
 	}
 	if err := sm.m.Unmount(id); err != nil {
 		return errors.Wrap(err, "cannot unmount volume")
@@ -235,15 +253,19 @@ func (sm *manager) readMetadata(id string) (*api.Volume, error) {
 }
 
 func (sm *manager) Get(id string) (*api.Volume, error) {
+	log.Debug("getting volume", zap.String("id", id))
+
 	if exists, err := sm.af.DirExists(sm.m.Path(id)); err != nil {
 		return nil, errors.Wrap(err, "cannot test volume path existence")
 	} else if !exists {
-		return nil, ErrNonExist
+		return nil, ErrNonExist("volume not found")
 	}
 	return sm.readMetadata(id)
 }
 
 func (sm *manager) List() (api.Volumes, error) {
+	log.Debug("listing volumes")
+
 	if exists, err := sm.af.DirExists(sm.m.Root()); err != nil {
 		return nil, errors.Wrap(err, "cannot test parent directory existence")
 	} else if !exists {

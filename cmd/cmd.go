@@ -17,6 +17,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+// TODO(negz): These don't need to be global.
 var (
 	// TODO(negz): Read Talos SRV from configuration
 	srv = kingpin.Arg("talos-srv", "SRV record at which to lookup Talos.").String()

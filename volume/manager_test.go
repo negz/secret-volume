@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 
 	"github.com/negz/secret-volume/api"
@@ -51,7 +52,8 @@ func TestManager(t *testing.T) {
 		vm, _ := NewManager(m, sp, Filesystem(fs), MetadataFile("someta"))
 
 		t.Run("DestroyBeforeCreated", func(t *testing.T) {
-			if err := vm.Destroy(tt.v.ID); err != ErrNonExist {
+			err := vm.Destroy(tt.v.ID)
+			if _, ok := errors.Cause(err).(ErrNonExist); !ok {
 				t.Errorf("vm.Destroy(%v): %v", tt.v.ID, err)
 			}
 		})
@@ -102,7 +104,8 @@ func TestManager(t *testing.T) {
 		})
 
 		t.Run("CreateWhenExists", func(t *testing.T) {
-			if err := vm.Create(tt.v); err != ErrExists {
+			err := vm.Create(tt.v)
+			if _, ok := errors.Cause(err).(ErrExists); !ok {
 				t.Errorf("vm.Create(%v): %v", tt.v, err)
 			}
 		})

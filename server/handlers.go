@@ -13,6 +13,19 @@ import (
 	"github.com/negz/secret-volume/volume"
 )
 
+type notFound interface {
+	// NotFound is true if the error implementing this interface should be
+	// treated as an HTTP 404 not found.
+	NotFound() bool
+}
+
+// IsNotFound determines whether the supplied error's cause should be treated as
+// a HTTP 404 not found.
+func IsNotFound(err error) bool {
+	e, ok := errors.Cause(err).(notFound)
+	return ok && e.NotFound()
+}
+
 // HTTPHandlers contains HTTP handlers for secret volume CRD operations.
 type HTTPHandlers struct {
 	v     volume.Manager
@@ -48,6 +61,7 @@ func NewHTTPHandlers(v volume.Manager, ho ...HTTPHandlersOption) (*HTTPHandlers,
 }
 
 func (h *HTTPHandlers) setupRoutes() {
+	// TODO(negz): Set content-length headers
 	h.r.GET("/", logReq(json(h.list)))
 	h.r.POST("/", logReq(json(h.create)))
 	h.r.GET("/:id", logReq(json(h.ensureParam(h.get, h.idKey))))
@@ -76,16 +90,21 @@ func (h *HTTPHandlers) get(w http.ResponseWriter, r *http.Request) {
 	id := h.r.GetParam(r, h.idKey)
 	v, err := h.v.Get(id)
 	if err != nil {
+		if IsNotFound(err) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	if err := v.WriteJSON(w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (h *HTTPHandlers) create(w http.ResponseWriter, r *http.Request) {
-	v, err := api.ReadVolumeJSON(r.Body)
+	v, err := api.ReadVolumeJSONWithKeyPair(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -107,9 +126,13 @@ func (h *HTTPHandlers) create(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandlers) delete(w http.ResponseWriter, r *http.Request) {
 	id := h.r.GetParam(r, h.idKey)
 	if err := h.v.Destroy(id); err != nil {
+		if IsNotFound(err) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
 }
 
 func (h *HTTPHandlers) ensureParam(fn http.HandlerFunc, p string) http.HandlerFunc {

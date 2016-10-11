@@ -58,8 +58,9 @@ func (s *SecretSource) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// PEM represents PEM encoded data.
-type PEM []byte
+// PEM represents PEM encoded data. It is a string (rather than []byte) to
+// prevent the JSON encoder further encoding it as a base64 string.
+type PEM string
 
 // A KeyPair contains PEM encoded data for a Certificate and a PrivateKey.
 type KeyPair struct {
@@ -78,12 +79,12 @@ func NewKeyPair(cert, key string) (KeyPair, error) {
 	if err != nil {
 		return KeyPair{}, errors.Wrapf(err, "cannot read %v", key)
 	}
-	return KeyPair{certPEM, keyPEM}, nil
+	return KeyPair{PEM(certPEM), PEM(keyPEM)}, nil
 }
 
 // ToCertificate builds a tls.Certificate from KeyPair PEM data.
 func (k KeyPair) ToCertificate() (tls.Certificate, error) {
-	crt, err := tls.X509KeyPair(k.Certificate, k.PrivateKey)
+	crt, err := tls.X509KeyPair([]byte(k.Certificate), []byte(k.PrivateKey))
 	return crt, errors.Wrap(err, "cannot parse keypair")
 }
 
@@ -115,6 +116,26 @@ func ReadVolumeJSON(r io.Reader) (*Volume, error) {
 		return nil, errors.Wrap(err, "cannot read JSON")
 	}
 	return v, nil
+}
+
+// A volumeCreation represents the JSON required to create a Volume, including
+// the KeyPair.
+type volumeCreation struct {
+	ID      string
+	Source  SecretSource
+	Tags    url.Values
+	KeyPair KeyPair
+}
+
+// ReadVolumeJSONWithKeyPair is a variant of ReadVolumeFromJSON that includes
+// the KeyPair. KeyPairs are only relevant at volume creation time, after which
+// they are not persisted.
+func ReadVolumeJSONWithKeyPair(r io.Reader) (*Volume, error) {
+	v := &volumeCreation{}
+	if err := json.NewDecoder(r).Decode(v); err != nil {
+		return nil, errors.Wrap(err, "cannot read JSON")
+	}
+	return &Volume{ID: v.ID, Source: v.Source, Tags: v.Tags, KeyPair: v.KeyPair}, nil
 }
 
 // Volumes represents a slice of Volumes.
