@@ -7,7 +7,7 @@ go:
 before_install:
   - go get -u gopkg.in/alecthomas/gometalinter.v1
   - gometalinter.v1 --install
-  - bash <(curl -s https://glide.sh/get)
+  - ./getglide.sh
 
 install:
   - glide install
