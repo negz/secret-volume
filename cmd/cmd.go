@@ -43,7 +43,7 @@ func Run() {
 		addr   = app.Flag("addr", "Address at which to serve requests (host:port).").Default(":10002").String()
 		ns     = app.Flag("ns", "DNS server to use to lookup SRV records (host:port).").String()
 		parent = app.Flag("parent", "Directory under which to mount secret volumes.").Default("/secrets").String()
-		virt   = app.Flag("virtual", "Use an in-memory filesystem and a no-op parenter for testing.").Bool()
+		virt   = app.Flag("virtual", "Use an in-memory filesystem and a no-op mounter.").Bool()
 		stop   = app.Flag("close-after", "Wait this long at shutdown before closing HTTP connections.").Default("1m").Duration()
 		kill   = app.Flag("kill-after", "Wait this long at shutdown before exiting.").Default("2m").Duration()
 	)

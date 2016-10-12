@@ -21,7 +21,7 @@ Flags:
   --addr=":10002"        Address at which to serve requests (host:port).
   --ns=NS                DNS server to use to lookup SRV records (host:port).
   --parent="/secrets"    Directory under which to mount secret volumes.
-  --virtual              Use an in-memory filesystem and a no-op parenter for testing.
+  --virtual              Use an in-memory filesystem and a no-op mounter.
   --close-after=1m       Wait this long at shutdown before closing HTTP connections.
   --kill-after=2m        Wait this long at shutdown before exiting.
 ```
