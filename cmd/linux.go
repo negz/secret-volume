@@ -12,7 +12,11 @@ import (
 func setupFs(virt bool, root string) (volume.Mounter, afero.Fs, error) {
 	if virt {
 		log.Debug("Using in-memory filesystem and noop mounter")
-		return volume.NewNoopMounter(root), afero.NewMemMapFs(), nil
+		fs := afero.NewMemMapFs()
+		if err := fs.MkdirAll(root, 0700); err != nil {
+			return nil, nil, err
+		}
+		return volume.NewNoopMounter(root), fs, nil
 	}
 	tmpfs, err := volume.NewTmpFsMounter(root)
 	if err != nil {
