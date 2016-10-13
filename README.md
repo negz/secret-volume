@@ -26,6 +26,49 @@ Flags:
   --kill-after=2m        Wait this long at shutdown before exiting.
 ```
 
+# API
+To request that `secret-volume` procure secrets from Talos and store them at `/secrets/awesomevolume` send an HTTP POST to `http://secretvolume:10002/` with the following JSON encoded body:
+```json
+{
+  "ID": "awesomevolume",
+  "Source": "Talos",
+  "Tags": {"awesome": ["very"]},
+  "KeyPair": {
+    "Certificate": "-----BEGIN CERTIFICATE-----\nMIIG[...]D5/Hyg==\n-----END CERTIFICATE-----\n",
+    "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIJ[...]KAQmg=\n-----END RSA PRIVATE KEY-----\n"
+  }
+}
+```
+* The `Source` informs `secret-volume` this is a volume of [Talos] secrets.
+* The `KeyPair` is a PEM encoded certificate and private key used to authenticate to the secret source on behalf of the owner of the secrets (i.e. a host or Docker container). The `KeyPair` is discarded once secrets have been procured.
+* The `Tags` are passed to [Talos] for use with the `unsafe_scopes` option. In this case the Talos URL would be `https://talos.example.org?awesome=very`.
+
+A successful creation will result in a HTTP 200 status code and a JSON rendering of the created volume, sans `KeyPair`, i.e.:
+```json
+{
+  "ID": "awesomevolume",
+  "Source": "Talos",
+  "Tags": {"awesome": ["very"]}
+}
+```
+
+You can list extant volumes by sending an HTTP GET to `http://secretvolume:10002/`. The returned list will look like:
+```json
+[
+  {
+    "ID": "awesomevolume",
+    "Source": "Talos",
+    "Tags": {"awesome": ["very"]}
+  },
+  {"ID": "..."}
+]
+```
+Note the `KeyPair` is omitted.
+
+You may also query for an individual volume by sending an HTTP GET to `http://secretvolume:10002/<id>`, for example `http://secretvolume:10002/awesomevolume`. The JSON result will be identical to that returned when the volume was created. `secret-volume` will return an HTTP 404 status code if no such volume exists.
+
+To destroy a volume send an HTTP DELETE to `http://secretvolume:10002/<id>`. The volume will be unmounted and its secrets will no longer be available.
+
 # Building
 `secret-volume` can be built as a native binary, or a Docker container. Builds for `GOOS=linux` (i.e. Docker) will default to storing secrets in `tmpfs`. Any other OS (i.e. `GOOS=darwin`) will only support using `MemMapFs`.
 
