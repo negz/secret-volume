@@ -42,7 +42,7 @@ func NewTalosProducer(lb lb.LoadBalancer, spo ...TalosProducerOption) (Producer,
 	sp := &talosProducer{lb, context.Background()}
 	for _, o := range spo {
 		if err := o(sp); err != nil {
-			return nil, errors.Wrapf(err, "cannot apply Talos producer option")
+			return nil, errors.Wrap(err, "cannot apply Talos producer option")
 		}
 	}
 	return sp, nil
