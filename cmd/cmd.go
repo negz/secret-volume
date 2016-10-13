@@ -11,6 +11,7 @@ import (
 	"github.com/negz/secret-volume/secrets"
 	"github.com/negz/secret-volume/server"
 	"github.com/negz/secret-volume/volume"
+	"github.com/uber-go/zap"
 
 	"github.com/benschw/srv-lb/dns"
 	"github.com/benschw/srv-lb/lb"
@@ -27,7 +28,9 @@ func setupTalosLb(ns, srv string) lb.LoadBalancer {
 		lib = dns.NewDefaultLookupLib()
 	} else {
 		lib = dns.NewLookupLib(ns)
+		log.Debug("Using nameserver", zap.String("ns", ns))
 	}
+	log.Debug("Using Talos SRV", zap.String("srv", srv))
 
 	return lb.New(&lb.Config{Dns: lib, Strategy: random.RandomStrategy}, srv)
 }
