@@ -48,7 +48,7 @@ func TestManager(t *testing.T) {
 			}
 			s = tgz
 		}
-		sp := secrets.Producers{api.Talos: &boringProducer{s}}
+		sp := secrets.Producers{api.TalosSecretSource: &boringProducer{s}}
 		vm, _ := NewManager(m, sp, Filesystem(fs), MetadataFile("someta"))
 
 		t.Run("DestroyBeforeCreated", func(t *testing.T) {

@@ -57,7 +57,7 @@ func Run() {
 	if *talos != "" {
 		sp, terr := secrets.NewTalosProducer(setupTalosLb(*ns, *talos))
 		kingpin.FatalIfError(terr, "cannot setup Talos secret producer")
-		sps[api.Talos] = sp
+		sps[api.TalosSecretSource] = sp
 	}
 
 	vm, err := volume.NewManager(m, sps, volume.Filesystem(fs))

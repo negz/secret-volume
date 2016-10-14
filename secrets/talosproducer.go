@@ -91,6 +91,6 @@ func (sp *talosProducer) For(v *api.Volume) (api.Secrets, error) {
 		}
 		return nil, errors.Errorf("cannot fetch secrets from %v: %v: %s", url, r.Status, e)
 	}
-	s, err := NewTarGz(v, r.Body)
+	s, err := NewTarGz(v, r.Body, TarGzSecretType(api.YAMLSecretType))
 	return s, errors.Wrap(err, "cannot build tar.gz secrets")
 }

@@ -17,26 +17,42 @@ type tarGz struct {
 	r io.ReadCloser
 	z *gzip.Reader
 	t *tar.Reader
+	s api.SecretType
+}
+
+type TarGzOption func(*tarGz) error
+
+func TarGzSecretType(s api.SecretType) TarGzOption {
+	return func(t *tarGz) error {
+		t.s = s
+		return nil
+	}
 }
 
 // NewTarGz creates an api.Secrets backed by the supplied io.ReadCloser, which
 // is expected to be a gzipped tarball of secret files.
-func NewTarGz(v *api.Volume, r io.ReadCloser) (api.Secrets, error) {
+func NewTarGz(v *api.Volume, r io.ReadCloser, tgzo ...TarGzOption) (api.Secrets, error) {
 	z, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot build new gzip reader")
 	}
-	return &tarGz{v, r, z, tar.NewReader(z)}, nil
+	t := &tarGz{v, r, z, tar.NewReader(z), api.UnknownSecretType}
+	for _, o := range tgzo {
+		if err := o(t); err != nil {
+			return nil, errors.Wrap(err, "cannot apply tar.gz secrets option")
+		}
+	}
+	return t, nil
 }
 
 // OpenTarGz creates an api.Secrets backed by the supplied file, which is
 // expected to be a gzipped tarball of secret files.
-func OpenTarGz(v *api.Volume, fs afero.Fs, file string) (api.Secrets, error) {
+func OpenTarGz(v *api.Volume, fs afero.Fs, file string, tgzo ...TarGzOption) (api.Secrets, error) {
 	z, err := fs.Open(file)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot open tar.gz secrets")
 	}
-	s, err := NewTarGz(v, z)
+	s, err := NewTarGz(v, z, tgzo...)
 	return s, errors.Wrap(err, "cannot build tar.gz secrets")
 }
 
@@ -45,8 +61,8 @@ func (sd *tarGz) Volume() *api.Volume {
 	return sd.v
 }
 
-func fromTarHeader(h *tar.Header) *api.SecretsHeader {
-	return &api.SecretsHeader{Path: h.Name, FileInfo: h.FileInfo()}
+func (sd *tarGz) fromTarHeader(h *tar.Header) *api.SecretsHeader {
+	return &api.SecretsHeader{Path: h.Name, Type: sd.s, FileInfo: h.FileInfo()}
 }
 
 // Next advances to the next secrets file or directory.
@@ -65,7 +81,7 @@ func (sd *tarGz) Next() (*api.SecretsHeader, error) {
 			continue
 		}
 		log.Debug("found file", zap.String("path", h.Name))
-		return fromTarHeader(h), nil
+		return sd.fromTarHeader(h), nil
 	}
 }
 

@@ -21,15 +21,15 @@ type SecretSource int
 
 const (
 	// Unknown source. Volumes with unknown sources will not be handled.
-	Unknown SecretSource = iota
+	UnknownSecretSource SecretSource = iota
 	// Talos source. Volumes with the Talos source will be handled by
 	// https://github.com/spotify/talos.
-	Talos
+	TalosSecretSource
 )
 
 func (s SecretSource) String() string {
 	switch s {
-	case Talos:
+	case TalosSecretSource:
 		return "Talos"
 	default:
 		return "Unknown"
@@ -50,9 +50,9 @@ func (s *SecretSource) UnmarshalJSON(data []byte) error {
 
 	switch strings.ToLower(str) {
 	case "talos":
-		*s = Talos
+		*s = TalosSecretSource
 	default:
-		*s = Unknown
+		*s = UnknownSecretSource
 	}
 
 	return nil
@@ -166,6 +166,7 @@ func (v *Volume) String() string {
 type Secrets interface {
 	// Volume returns the Volume these Secrets were produced for.
 	Volume() *Volume
+	// Type returns the type of the
 	// Next advances to the next secrets file or directory.
 	Next() (*SecretsHeader, error)
 	// Read reads from the current secrets file, returning 0, io.EOF when that
@@ -175,8 +176,32 @@ type Secrets interface {
 	Close() error
 }
 
+// A SecretType denotes the expected format of a secrets file, i.e. JSON or YAML.
+type SecretType int
+
+const (
+	// An Unknown type
+	UnknownSecretType SecretType = iota
+	// A JSON secret file
+	JSONSecretType
+	// A YAML secret file
+	YAMLSecretType
+)
+
+func (s SecretType) String() string {
+	switch s {
+	case JSONSecretType:
+		return "JSON"
+	case YAMLSecretType:
+		return "YAML"
+	default:
+		return "Unknown"
+	}
+}
+
 // A SecretsHeader contains information about an individual secret file.
 type SecretsHeader struct {
 	Path     string
+	Type     SecretType
 	FileInfo os.FileInfo
 }

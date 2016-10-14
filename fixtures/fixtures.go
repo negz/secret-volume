@@ -46,7 +46,7 @@ func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 	}
 	v := &api.Volume{
 		ID:      "hash",
-		Source:  api.Talos,
+		Source:  api.TalosSecretSource,
 		Tags:    url.Values{"tag": []string{"awesome"}},
 		KeyPair: kp,
 	}
@@ -56,7 +56,7 @@ func TestVolumeWithCert(c, k string) (*api.Volume, error) {
 // TestVolume is a volume fixture
 var TestVolume = &api.Volume{
 	ID:      "hash",
-	Source:  api.Talos,
+	Source:  api.TalosSecretSource,
 	Tags:    url.Values{"tag": []string{"awesome"}},
 	KeyPair: api.KeyPair{},
 }
@@ -109,7 +109,7 @@ func (s *boringSecrets) Next() (*api.SecretsHeader, error) {
 		return nil, io.EOF
 	}
 	s.read = true
-	return &api.SecretsHeader{Path: "womp", FileInfo: &boringFileInfo{}}, nil
+	return &api.SecretsHeader{Path: "womp", Type: api.JSONSecretType, FileInfo: &boringFileInfo{}}, nil
 }
 
 func (s *boringSecrets) Read(b []byte) (int, error) {

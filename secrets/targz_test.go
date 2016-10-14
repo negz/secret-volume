@@ -14,21 +14,22 @@ var tarGzTests = []struct {
 	f     string
 	v     *api.Volume
 	files int
+	t     api.SecretType
 }{
-	{"../fixtures/yaml.tar.gz", fixtures.TestVolume, 3},
+	{"../fixtures/yaml.tar.gz", fixtures.TestVolume, 3, api.JSONSecretType},
 }
 
 func TestTarGz(t *testing.T) {
 	for _, tt := range tarGzTests {
 		fs := afero.NewOsFs()
-		sd, _ := OpenTarGz(tt.v, fs, tt.f)
+		sd, _ := OpenTarGz(tt.v, fs, tt.f, TarGzSecretType(tt.t))
 		t.Run("Extract", func(t *testing.T) {
-			found := 0
+			got := 0
 			for {
 				h, err := sd.Next()
 				if err == io.EOF {
-					if found != tt.files {
-						t.Errorf("found == %v, wanted %v", found, tt.files)
+					if got != tt.files {
+						t.Errorf("want %v, got %v", tt.files, got)
 					}
 					return
 				}
@@ -36,8 +37,12 @@ func TestTarGz(t *testing.T) {
 					t.Errorf("sd.Next(): %v", err)
 					return
 				}
-				t.Logf("Found: %v", h.Path)
-				found++
+
+				if h.Type != tt.t {
+					t.Errorf("h.Type: want %v, got %v", tt.t, h.Type)
+				}
+
+				got++
 			}
 		})
 		t.Run("Close", func(t *testing.T) {
