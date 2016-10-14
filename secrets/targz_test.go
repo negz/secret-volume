@@ -16,7 +16,7 @@ var tarGzTests = []struct {
 	files int
 	t     api.SecretType
 }{
-	{"../fixtures/yaml.tar.gz", fixtures.TestVolume, 3, api.JSONSecretType},
+	{"../fixtures/yaml.tar.gz", fixtures.TestVolume, 3, api.YAMLSecretType},
 }
 
 func TestTarGz(t *testing.T) {

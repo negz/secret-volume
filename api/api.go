@@ -20,10 +20,9 @@ import (
 type SecretSource int
 
 const (
-	// Unknown source. Volumes with unknown sources will not be handled.
+	// UnknownSecretSource volumes will not be handled.
 	UnknownSecretSource SecretSource = iota
-	// Talos source. Volumes with the Talos source will be handled by
-	// https://github.com/spotify/talos.
+	// TalosSecretSource volumes will be handled by https://github.com/spotify/talos.
 	TalosSecretSource
 )
 
@@ -180,11 +179,12 @@ type Secrets interface {
 type SecretType int
 
 const (
-	// An Unknown type
+	// UnknownSecretType files cannot be merged as we do not understand their
+	// contents.
 	UnknownSecretType SecretType = iota
-	// A JSON secret file
+	// JSONSecretType files are expected to contain a one dimensional JSON map.
 	JSONSecretType
-	// A YAML secret file
+	// YAMLSecretType files are expected to contain a one dimensional YAML map.
 	YAMLSecretType
 )
 

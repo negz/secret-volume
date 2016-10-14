@@ -20,8 +20,10 @@ type tarGz struct {
 	s api.SecretType
 }
 
+// A TarGzOption represents an argument to NewTarGz.
 type TarGzOption func(*tarGz) error
 
+// TarGzSecretType defines the type of the secret files within Secrets.
 func TarGzSecretType(s api.SecretType) TarGzOption {
 	return func(t *tarGz) error {
 		t.s = s
