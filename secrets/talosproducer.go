@@ -42,7 +42,7 @@ func NewTalosProducer(lb lb.LoadBalancer, spo ...TalosProducerOption) (Producer,
 	sp := &talosProducer{lb, context.Background()}
 	for _, o := range spo {
 		if err := o(sp); err != nil {
-			return nil, errors.Wrapf(err, "cannot apply Talos producer option")
+			return nil, errors.Wrap(err, "cannot apply Talos producer option")
 		}
 	}
 	return sp, nil
@@ -91,6 +91,6 @@ func (sp *talosProducer) For(v *api.Volume) (api.Secrets, error) {
 		}
 		return nil, errors.Errorf("cannot fetch secrets from %v: %v: %s", url, r.Status, e)
 	}
-	s, err := NewTarGz(v, r.Body)
+	s, err := NewTarGz(v, r.Body, TarGzSecretType(api.YAMLSecretType))
 	return s, errors.Wrap(err, "cannot build tar.gz secrets")
 }

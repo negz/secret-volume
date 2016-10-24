@@ -49,6 +49,7 @@ func Run() {
 		virt   = app.Flag("virtual", "Use an in-memory filesystem and a no-op mounter.").Bool()
 		stop   = app.Flag("close-after", "Wait this long at shutdown before closing HTTP connections.").Default("1m").Duration()
 		kill   = app.Flag("kill-after", "Wait this long at shutdown before exiting.").Default("2m").Duration()
+		js     = app.Flag("json-secrets", "Store all secrets in a JSON file at this path.").String()
 	)
 
 	kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -60,10 +61,17 @@ func Run() {
 	if *talos != "" {
 		sp, terr := secrets.NewTalosProducer(setupTalosLb(*ns, *talos))
 		kingpin.FatalIfError(terr, "cannot setup Talos secret producer")
-		sps[api.Talos] = sp
+		sps[api.TalosSecretSource] = sp
 	}
 
-	vm, err := volume.NewManager(m, sps, volume.Filesystem(fs))
+	var vmo []volume.ManagerOption
+	if *js != "" {
+		vmo = []volume.ManagerOption{volume.Filesystem(fs), volume.WriteJSONSecrets(*js)}
+	} else {
+		vmo = []volume.ManagerOption{volume.Filesystem(fs)}
+	}
+
+	vm, err := volume.NewManager(m, sps, vmo...)
 	kingpin.FatalIfError(err, "cannot setup secret volume manager")
 
 	handlers, err := server.NewHTTPHandlers(vm)

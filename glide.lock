@@ -1,5 +1,5 @@
-hash: 3e98dd8b0246f93d71eea7a922d992d8c83d5413b686d074fc8dea5b2676afeb
-updated: 2016-10-06T15:50:59.407754992-04:00
+hash: 62db2ba3c510085efc5e5cfbf4a654853cac6f8451a20f62e1e09b5dddc54650
+updated: 2016-10-13T23:32:07.111966871-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -13,6 +13,8 @@ imports:
   - dns
   - lb
   - strategy/random
+- name: github.com/cloudfoundry-incubator/candiedyaml
+  version: 99c3df83b51532e3615f851d8c2dbb638f5313bf
 - name: github.com/facebookgo/clock
   version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
 - name: github.com/facebookgo/httpdown

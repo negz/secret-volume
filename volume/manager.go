@@ -61,6 +61,7 @@ type manager struct {
 	meta        string
 	dmode       os.FileMode
 	fmode       os.FileMode
+	jsonSecrets string
 }
 
 // A ManagerOption represents an argument to NewManager.
@@ -105,18 +106,20 @@ func FileMode(m os.FileMode) ManagerOption {
 	}
 }
 
+// WriteJSONSecrets will cause the manager to merge all secrets produced for
+// a volume into a file containing a JSON encoded map. The provided filename is
+// relative to the volume's root.
+func WriteJSONSecrets(filename string) ManagerOption {
+	return func(sm *manager) error {
+		sm.jsonSecrets = filename
+		return nil
+	}
+}
+
 // NewManager creates a new Manager backed by the provided secret producers.
 func NewManager(m Mounter, sp secrets.Producers, mo ...ManagerOption) (Manager, error) {
 	fs := afero.NewOsFs()
-	sm := &manager{
-		m,
-		fs,
-		&afero.Afero{Fs: fs},
-		sp,
-		".meta",
-		0700,
-		0600,
-	}
+	sm := &manager{m, fs, &afero.Afero{Fs: fs}, sp, ".meta", 0700, 0600, ""}
 	for _, o := range mo {
 		if err := o(sm); err != nil {
 			return nil, errors.Wrap(err, "cannot apply manager option")
@@ -175,6 +178,22 @@ func (sm *manager) writeSecrets(v *api.Volume, s api.Secrets) error {
 	}
 }
 
+func (sm *manager) writeJSONSecrets(v *api.Volume, s api.Secrets) error {
+	if sm.jsonSecrets == "" {
+		return nil
+	}
+
+	f, err := sm.createFile(v.ID, sm.jsonSecrets)
+	if err != nil {
+		return errors.Wrap(err, "cannot create JSON secrets file")
+	}
+	defer f.Close()
+
+	// TODO(negz): Add an api.JSONable interface, write secrets if the passed
+	// secrets object fulfils that interface?
+	return errors.Wrap(secrets.WriteJSON(s, f), "cannot convert to JSON secrets")
+}
+
 func (sm *manager) writeMetadata(v *api.Volume) error {
 	f, err := sm.createFile(v.ID, sm.meta)
 	if err != nil {
@@ -209,6 +228,9 @@ func (sm *manager) Create(v *api.Volume) error {
 	}
 	if err := sm.writeSecrets(v, s); err != nil {
 		return errors.Wrap(err, "cannot write secrets")
+	}
+	if err := sm.writeJSONSecrets(v, s); err != nil {
+		return errors.Wrap(err, "cannot write JSON secrets")
 	}
 	if err := sm.writeMetadata(v); err != nil {
 		return errors.Wrap(err, "cannot write metadata")

@@ -50,9 +50,9 @@ func TestIntegration(t *testing.T) {
 	lb, _ := fixtures.PredictableLoadBalancerFor(ts.URL)
 
 	sp, _ := secrets.NewTalosProducer(lb)
-	sps := map[api.SecretSource]secrets.Producer{api.Talos: sp}
+	sps := map[api.SecretSource]secrets.Producer{api.TalosSecretSource: sp}
 
-	vm, _ := volume.NewManager(m, sps, volume.Filesystem(fs))
+	vm, _ := volume.NewManager(m, sps, volume.Filesystem(fs), volume.WriteJSONSecrets("secrets.json"))
 
 	h, _ := server.NewHTTPHandlers(vm)
 
